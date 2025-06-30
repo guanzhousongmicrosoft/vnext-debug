@@ -124,7 +124,7 @@ EOF
 
     # Create test API project
     log "Creating test API project..." "INFO"
-    dotnet new webapi -n TestApi --framework net9.0
+    dotnet new webapi -n TestApi --framework net8.0
     
     # Add Cosmos client to API
     cd TestApi
