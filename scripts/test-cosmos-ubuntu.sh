@@ -124,10 +124,16 @@ EOF
 
     # Create test API project
     log "Creating test API project..." "INFO"
-    dotnet new webapi -n TestApi --framework net8.0
+    dotnet new webapi -n TestApi
+    
+    # Modify the project file to target .NET 8.0 to match Aspire
+    cd TestApi
+    sed -i 's/<TargetFramework>net9.0<\/TargetFramework>/<TargetFramework>net8.0<\/TargetFramework>/' TestApi.csproj
+    log "Updated TestApi to target .NET 8.0 to match Aspire project" "INFO"
     
     # Add Cosmos client to API
-    cd TestApi
+    dotnet add package Microsoft.Azure.Cosmos
+    dotnet add package Aspire.Microsoft.Azure.Cosmos
     dotnet add package Microsoft.Azure.Cosmos
     dotnet add package Aspire.Microsoft.Azure.Cosmos
     
