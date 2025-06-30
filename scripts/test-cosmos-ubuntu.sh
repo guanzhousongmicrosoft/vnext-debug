@@ -141,7 +141,7 @@ EOF
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.11" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.47.2" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.49.0" />
     <PackageReference Include="Aspire.Microsoft.Azure.Cosmos" Version="9.3.1" />
   </ItemGroup>
 
