@@ -11,10 +11,49 @@ schema "cosmos_api" does not exist
 ```
 
 This error occurs specifically:
-- ✅ In GitHub Actions on Ubuntu
+- ✅ In GitHub Actions on Ubuntu (primary target)
 - ✅ On macOS M2/M3 systems
 - ❌ Works fine on Windows 11
 - ❌ Works fine in local development environments
+
+## 🚀 Latest Improvements
+
+**Major fixes have been implemented to resolve service startup issues:**
+
+1. **Fixed Project Reference Issue**: Corrected Aspire project configuration to properly launch TestApi service
+2. **Enhanced Build Process**: Improved project creation and dependency management
+3. **Better Debugging**: Separate stdout/stderr logging and enhanced error detection
+4. **Robust Configuration**: Added comprehensive environment variable setup
+5. **Improved Monitoring**: Enhanced process and network monitoring for better diagnosis
+
+See [IMPROVEMENTS.md](./IMPROVEMENTS.md) for detailed technical changes.
+
+## 🏃‍♂️ Quick Start
+
+### Option 1: GitHub Actions (Recommended)
+1. **Fork or clone this repository**
+2. **Go to Actions tab** in your GitHub repository  
+3. **Select "Reproduce Azure Cosmos DB Emulator vNext Issue"**
+4. **Click "Run workflow"** with default settings
+5. **Monitor the workflow** - it should now properly start the TestApi service
+6. **Check results** in the workflow logs and artifacts
+
+### Option 2: Local Testing (Advanced)
+```bash
+# Prerequisites: .NET 8.0, Docker, curl, jq installed on Ubuntu/WSL
+git clone <your-repo>
+cd vnext-debug
+
+# Test the script syntax
+./test-improvements.sh
+
+# Run the actual test (requires Docker privileges)
+sudo ./scripts/test-cosmos-ubuntu.sh 2 basic
+```
+
+### Expected Improvement
+- **Before**: TestApi service never started, no API testing possible
+- **After**: TestApi service starts on port 5000, full Cosmos DB connectivity testing enabled
 
 ## Repository Structure
 
@@ -22,32 +61,31 @@ This error occurs specifically:
 .
 ├── .github/
 │   └── workflows/
-│       └── reproduce-cosmos-issue.yml    # Main GitHub Actions workflow
+│       └── reproduce-cosmos-issue.yml    # Ubuntu-only workflow (optimized)
 ├── scripts/
-│   ├── test-cosmos-windows.ps1           # PowerShell script for Windows testing
-│   ├── test-cosmos-ubuntu.sh             # Bash script for Ubuntu testing
-│   ├── test-cosmos-macos.sh              # Bash script for macOS testing
-│   ├── analyze-logs.sh                   # Log analysis script
-│   └── create-summary.sh                 # Summary generation script
+│   └── test-cosmos-ubuntu.sh             # Enhanced Ubuntu testing script
+├── IMPROVEMENTS.md                       # Detailed improvement documentation
+├── test-improvements.sh                  # Local validation script
 └── README.md                             # This file
 ```
 
 ## How It Works
 
-### 1. Multi-Platform Testing
+### 1. Ubuntu-Only Testing
 
-The workflow runs on three platforms simultaneously:
-- **Windows** (control group - expected to work)
-- **Ubuntu** (primary target - expected to reproduce issue)
-- **macOS** (additional validation)
+The workflow is now optimized for Ubuntu testing (the primary platform where the issue occurs):
+- **Ubuntu 22.04** with .NET 8.0 and Docker pre-installed
+- Focuses resources on the target environment
+- Enhanced logging and debugging for this specific platform
 
-### 2. Aspire Integration
+### 2. Enhanced Aspire Integration
 
-Each test creates a complete .NET Aspire project that:
-- Configures Azure Cosmos DB emulator vNext
-- Creates a test database and container
-- Implements a comprehensive API for connectivity testing
-- Uses proper error handling and logging
+The test creates a complete .NET Aspire project with improved configuration:
+- ✅ Proper project structure using `dotnet new webapi`
+- ✅ Correct project references and solution setup
+- ✅ Fixed service startup and port binding
+- ✅ Comprehensive Cosmos DB connectivity testing
+- ✅ Detailed error reporting and log analysis
 
 ### 3. Detailed Logging
 

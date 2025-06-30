@@ -108,6 +108,7 @@ builder.Services.AddLogging(logging =>
 try
 {
     Console.WriteLine("=== Starting Aspire AppHost ===");
+    Console.WriteLine($"Working directory: {Environment.CurrentDirectory}");
     
     // Configure Cosmos DB emulator with detailed settings
     Console.WriteLine("Configuring Cosmos DB emulator...");
@@ -118,13 +119,14 @@ try
     Console.WriteLine("Adding MyDb database...");
     var database = cosmos.AddDatabase("MyDb");
 
-    // Add a simple API project that uses Cosmos with a fixed port
+    // Add TestApi using project path instead of Projects reference
     Console.WriteLine("Adding TestApi project...");
-    var api = builder.AddProject<Projects.TestApi>("api")
+    var api = builder.AddProject("api", "../TestApi/TestApi.csproj")
         .WithReference(cosmos)
         .WithHttpEndpoint(port: 5000, env: "HTTP_PORT")
         .WithEnvironment("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true")
-        .WithEnvironment("DOTNET_ENVIRONMENT", "Development");
+        .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
+        .WithEnvironment("ASPNETCORE_URLS", "http://localhost:5000");
 
     Console.WriteLine("Building Aspire application...");
     var app = builder.Build();
@@ -148,10 +150,19 @@ EOF
     # Create test API project
     log "Creating test API project..." "INFO"
     
-    # Create a clean .NET 8.0 project manually to avoid compatibility issues
-    mkdir -p TestApi/Controllers
+    # Remove TestApi directory if it exists to ensure clean creation
+    if [[ -d "TestApi" ]]; then
+        rm -rf TestApi
+    fi
     
-    # Create the project file targeting .NET 8.0
+    # Create TestApi using dotnet new to ensure proper structure
+    log "Creating TestApi project using dotnet new..." "INFO"
+    dotnet new webapi -n TestApi --framework net8.0 --no-https --use-controllers || {
+        log "Failed to create TestApi project" "ERROR"
+        return 1
+    }
+    
+    # Update the project file to include required packages
     cat > TestApi/TestApi.csproj << 'EOF'
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
@@ -175,12 +186,11 @@ EOF
 </Project>
 EOF
 
-    cd TestApi
-    log "Created clean .NET 8.0 TestApi project" "INFO"
+    log "Updated TestApi project file with required packages" "INFO"
+    
     
     # Create a comprehensive controller that tests Cosmos connectivity
-    mkdir -p Controllers
-    cat > Controllers/CosmosTestController.cs << 'EOF'
+    cat > TestApi/Controllers/CosmosTestController.cs << 'EOF'
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using System.Net;
@@ -367,7 +377,7 @@ public class CosmosTestController : ControllerBase
 EOF
 
     # Configure enhanced services and logging
-    cat > Program.cs << 'EOF'
+    cat > TestApi/Program.cs << 'EOF'
 using Aspire.Microsoft.Azure.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -423,19 +433,54 @@ app.Logger.LogInformation("Listening on: {Urls}", string.Join(", ", app.Urls));
 app.Run();
 EOF
 
+    log "Created TestApi Program.cs with Aspire integration" "INFO"
+    
+    # Add TestApi to the solution first, then add project references
+    log "Adding TestApi to the solution..." "INFO"
+    dotnet sln add TestApi/TestApi.csproj || {
+        log "Failed to add TestApi to solution" "ERROR"
+        return 1
+    }
+    
+    # Add project reference from AppHost to TestApi
+    log "Adding TestApi reference to AppHost..." "INFO"
+    cd "$test_project_dir.AppHost"
+    dotnet add reference ../TestApi/TestApi.csproj || {
+        log "Failed to add TestApi reference to AppHost" "ERROR"
+        return 1
+    }
     cd ..
     
-    # Add project reference
-    dotnet sln add TestApi/TestApi.csproj
-    cd "$test_project_dir.AppHost"
-    dotnet add reference ../TestApi/TestApi.csproj
-    cd ..
+    # Restore packages for all projects
+    log "Restoring NuGet packages for all projects..." "INFO"
+    dotnet restore || {
+        log "Failed to restore packages" "ERROR"
+        return 1
+    }
     
     log "Building Aspire project..." "INFO"
-    if ! dotnet build --verbosity normal; then
+    if ! dotnet build --verbosity normal --no-restore; then
         log "Failed to build Aspire project" "ERROR"
+        
+        # Show build errors
+        log "Build errors:" "ERROR"
+        dotnet build --verbosity normal --no-restore 2>&1 | grep -i error | head -10 | tee -a "$LOG_FILE"
         return 1
     fi
+    
+    # Verify that all projects built successfully
+    log "Verifying build outputs..." "INFO"
+    if [[ ! -f "TestApi/bin/Debug/net8.0/TestApi.dll" ]]; then
+        log "TestApi build output not found" "ERROR"
+        return 1
+    fi
+    
+    if [[ ! -f "$test_project_dir.AppHost/bin/Debug/net8.0/$test_project_dir.AppHost.dll" ]]; then
+        log "AppHost build output not found" "ERROR"
+        return 1
+    fi
+    
+    log "All projects built successfully" "INFO"
     
     log "Starting Aspire application..." "INFO"
     
@@ -443,6 +488,7 @@ EOF
     export ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL="http://localhost:18889"
     export DOTNET_ENVIRONMENT="Development"
     export ASPIRE_ALLOW_UNSECURED_TRANSPORT="true"
+    export ASPNETCORE_ENVIRONMENT="Development"
     
     if [[ $DEBUG_LEVEL -ge 3 ]]; then
         export DOTNET_LOG_LEVEL="Debug"
@@ -451,10 +497,16 @@ EOF
         export Logging__LogLevel__Microsoft__Hosting__Lifetime="Information"
     fi
     
+    # Show environment for debugging
+    log "Aspire environment variables:" "INFO"
+    env | grep -E "(ASPIRE|DOTNET|ASPNETCORE)" | sort | tee -a "$LOG_FILE"
+    
     # Start the application in background
-    log "Starting Aspire host..." "INFO"
+    log "Starting Aspire host from directory: $(pwd)/$test_project_dir.AppHost" "INFO"
     cd "$test_project_dir.AppHost"
-    dotnet run --verbosity normal > "$absolute_log_dir/aspire-output-$TIMESTAMP.log" 2>&1 &
+    
+    # Use nohup and separate stdout/stderr for better log capture
+    nohup dotnet run --verbosity normal > "$absolute_log_dir/aspire-output-$TIMESTAMP.log" 2> "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" &
     local aspire_pid=$!
     cd ..
     
@@ -512,8 +564,18 @@ EOF
                 log "No obvious errors found in Aspire logs" "INFO"
             fi
             
-            log "Full Aspire log output:" "INFO"
-            cat "$absolute_log_dir/aspire-output-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+            log "Recent Aspire stdout output:" "INFO"
+            tail -30 "$absolute_log_dir/aspire-output-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+        fi
+        
+        if [[ -f "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" ]]; then
+            log "Checking Aspire stderr for errors..." "INFO"
+            if [[ -s "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" ]]; then
+                log "Found errors in Aspire stderr:" "ERROR"
+                cat "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+            else
+                log "No errors in Aspire stderr" "INFO"
+            fi
         fi
     fi
     
@@ -570,8 +632,15 @@ EOF
                 
                 # Check if Aspire logs have any errors
                 if [[ -f "$absolute_log_dir/aspire-output-$TIMESTAMP.log" ]]; then
-                    log "Recent Aspire log output:" "INFO"
+                    log "Recent Aspire stdout output:" "INFO"
                     tail -20 "$absolute_log_dir/aspire-output-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+                fi
+                
+                if [[ -f "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" ]]; then
+                    if [[ -s "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" ]]; then
+                        log "Recent Aspire stderr output:" "WARN"
+                        tail -10 "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+                    fi
                 fi
             fi
         fi
@@ -597,8 +666,15 @@ EOF
         netstat -tulpn | grep LISTEN | tee -a "$LOG_FILE"
         
         if [[ -f "$absolute_log_dir/aspire-output-$TIMESTAMP.log" ]]; then
-            log "Aspire output tail:" "INFO"
+            log "Final Aspire stdout output:" "INFO"
             tail -50 "$absolute_log_dir/aspire-output-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+        fi
+        
+        if [[ -f "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" ]]; then
+            if [[ -s "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" ]]; then
+                log "Final Aspire stderr output:" "ERROR"
+                cat "$absolute_log_dir/aspire-errors-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+            fi
         fi
         
         return 1
