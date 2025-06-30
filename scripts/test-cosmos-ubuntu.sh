@@ -64,54 +64,53 @@ test_cosmos_emulator() {
     
     cd "$test_project_dir"
     
+    # First, add the required NuGet package to the AppHost project
+    cd "$test_project_dir.AppHost"
+    log "Adding Azure Cosmos DB package to AppHost..." "INFO"
+    dotnet add package Aspire.Hosting.Azure.CosmosDB --version 8.2.2 || {
+        log "Failed to add Cosmos DB package" "ERROR"
+        return 1
+    }
+    
+    # Ensure the AppHost targets .NET 8.0
+    log "Updating AppHost to target .NET 8.0..." "INFO"
+    sed -i 's/<TargetFramework>net9.0<\/TargetFramework>/<TargetFramework>net8.0<\/TargetFramework>/g' "$test_project_dir.AppHost.csproj"
+    
+    # Also ensure ServiceDefaults targets .NET 8.0 if it exists
+    if [[ -f "$test_project_dir.ServiceDefaults/$test_project_dir.ServiceDefaults.csproj" ]]; then
+        log "Updating ServiceDefaults to target .NET 8.0..." "INFO"
+        sed -i 's/<TargetFramework>net9.0<\/TargetFramework>/<TargetFramework>net8.0<\/TargetFramework>/g' "$test_project_dir.ServiceDefaults/$test_project_dir.ServiceDefaults.csproj"
+    fi
+    
+    cd ..
+    
     # Add Cosmos DB emulator configuration with enhanced error handling
     cat > "$test_project_dir.AppHost/Program.cs" << 'EOF'
 using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = DistributedApplication.CreateBuilder(args);
-
-// Enhanced logging configuration
-builder.Services.AddLogging(logging =>
-{
-    logging.ClearProviders();
-    logging.AddConsole();
-    logging.SetMinimumLevel(LogLevel.Debug);
-});
 
 try
 {
     // Configure Cosmos DB emulator with detailed settings
     var cosmos = builder
         .AddAzureCosmosDB("database")
-        .RunAsPreviewEmulator(options =>
-        {
-            options.WithLifetime(ContainerLifetime.Persistent);
-            options.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "10");
-            options.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true");
-            options.WithEnvironment("AZURE_COSMOS_EMULATOR_LOG_LEVEL", "Debug");
-            options.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_MONGO", "false");
-            options.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_CASSANDRA", "false");
-            options.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_TABLE", "false");
-            options.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_GREMLIN", "false");
-            // Additional debugging environment variables
-            options.WithEnvironment("COSMOS_EMULATOR_DEBUG", "true");
-            options.WithEnvironment("COSMOS_EMULATOR_VERBOSE", "true");
-        });
+        .RunAsEmulator();
 
-    var database = cosmos.AddCosmosDatabase("MyDb");
-    var container = database.AddContainer("Users", "/emailAddress");
+    var database = cosmos.AddDatabase("MyDb");
 
     // Add a simple API project that uses Cosmos
     var api = builder.AddProject<Projects.TestApi>("api")
-        .WithReference(database)
+        .WithReference(cosmos)
         .WithEnvironment("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
 
     var app = builder.Build();
     
     // Add startup logging
-    app.Services.GetRequiredService<ILogger<Program>>()
-        .LogInformation("Starting Aspire application with Cosmos DB emulator...");
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Starting Aspire application with Cosmos DB emulator...");
     
     app.Run();
 }
@@ -228,19 +227,20 @@ public class CosmosTestController : ControllerBase
                     ETag = response.Resource.ETag
                 };
                 
-                // Test 4: Try to access the container
-                _logger.LogInformation("Test 4: Attempting to access Users container...");
+                // Test 4: Try to create and access a container
+                _logger.LogInformation("Test 4: Attempting to create/access Users container...");
                 try
                 {
-                    var container = database.GetContainer("Users");
-                    var containerResponse = await container.ReadContainerAsync();
+                    // Try to create the container first (it might not exist)
+                    var containerProperties = new ContainerProperties("Users", "/emailAddress");
+                    var container = await database.CreateContainerIfNotExistsAsync(containerProperties);
                     
-                    _logger.LogInformation("Successfully accessed container: {ContainerId}", containerResponse.Resource.Id);
+                    _logger.LogInformation("Successfully created/accessed container: {ContainerId}", container.Container.Id);
                     testResults["container_access"] = new { 
                         Status = "Success", 
-                        ContainerId = containerResponse.Resource.Id,
-                        PartitionKeyPath = containerResponse.Resource.PartitionKeyPath,
-                        LastModified = containerResponse.Resource.LastModified
+                        ContainerId = container.Container.Id,
+                        PartitionKeyPath = containerProperties.PartitionKeyPath,
+                        StatusCode = container.StatusCode.ToString()
                     };
                     
                     // Test 5: Try a simple query
@@ -248,7 +248,7 @@ public class CosmosTestController : ControllerBase
                     try
                     {
                         var query = new QueryDefinition("SELECT * FROM c");
-                        var iterator = container.GetItemQueryIterator<dynamic>(query);
+                        var iterator = container.Container.GetItemQueryIterator<dynamic>(query);
                         var results = await iterator.ReadNextAsync();
                         
                         testResults["query_test"] = new { 
@@ -273,7 +273,7 @@ public class CosmosTestController : ControllerBase
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to access Users container");
+                    _logger.LogError(ex, "Failed to create/access Users container");
                     testResults["container_access"] = new { 
                         Status = "Failed", 
                         Error = ex.Message,

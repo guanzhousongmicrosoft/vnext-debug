@@ -28,7 +28,7 @@ on:
           - 'all'
 
 env:
-  DOTNET_VERSION: '9.0.x'
+  DOTNET_VERSION: '8.0.x'
   COSMOS_EMULATOR_VERSION: 'latest'
   DEBUG_LEVEL: ${{ github.event.inputs.debug_level || '2' }}
   TEST_SCENARIO: ${{ github.event.inputs.test_scenario || 'basic' }}
