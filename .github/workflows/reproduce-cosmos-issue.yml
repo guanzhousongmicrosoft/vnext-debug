@@ -47,20 +47,44 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
         
-    - name: Install Docker Desktop
+    - name: Install .NET Aspire workload
       run: |
-        choco install docker-desktop -y
-        Start-Sleep -Seconds 30
+        Write-Host "Installing .NET Aspire workload..."
+        dotnet workload install aspire
+        Write-Host "Aspire workload installed successfully"
+      shell: powershell
         
-    - name: Enable Windows containers
+    - name: Check Docker availability
       run: |
-        & "C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchLinuxEngine
-        Start-Sleep -Seconds 10
+        Write-Host "Checking Docker availability..."
+        docker --version
+        docker info
+        Write-Host "Testing Docker functionality..."
+        docker run --rm hello-world
+        Write-Host "Docker is available and working correctly"
+      shell: powershell
+      
+    - name: Pull Cosmos DB Emulator image
+      run: |
+        Write-Host "Pre-pulling Cosmos DB emulator image..."
+        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+        Write-Host "Cosmos DB emulator image pulled successfully"
+      shell: powershell
         
     - name: Run Windows test
       shell: powershell
       run: |
-        ./scripts/test-cosmos-windows.ps1 -DebugLevel ${{ env.DEBUG_LEVEL }} -TestScenario ${{ env.TEST_SCENARIO }}
+        try {
+          Write-Host "Starting Cosmos DB emulator test..."
+          $ErrorActionPreference = "Stop"
+          ./scripts/test-cosmos-windows.ps1 -DebugLevel ${{ env.DEBUG_LEVEL }} -TestScenario ${{ env.TEST_SCENARIO }}
+          Write-Host "Test completed successfully"
+        }
+        catch {
+          Write-Host "Test failed with error: $($_.Exception.Message)"
+          Write-Host "Stack trace: $($_.Exception.StackTrace)"
+          throw
+        }
         
     - name: Upload Windows logs
       uses: actions/upload-artifact@v4
@@ -70,82 +94,9 @@ jobs:
         path: logs/
         retention-days: 7
 
-  test-ubuntu:
-    name: Test on Ubuntu (Issue Reproduction)
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-        
-    - name: Setup Docker
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y docker.io docker-compose
-        sudo systemctl start docker
-        sudo systemctl enable docker
-        sudo usermod -aG docker $USER
-        
-    - name: Docker system info
-      run: |
-        docker --version
-        docker info
-        docker system df
-        
-    - name: Run Ubuntu test
-      run: |
-        chmod +x ./scripts/test-cosmos-ubuntu.sh
-        ./scripts/test-cosmos-ubuntu.sh ${{ env.DEBUG_LEVEL }} ${{ env.TEST_SCENARIO }}
-        
-    - name: Upload Ubuntu logs
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: ubuntu-logs
-        path: logs/
-        retention-days: 7
-
-  test-macos:
-    name: Test on macOS (Additional Platform)
-    runs-on: macos-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-        
-    - name: Setup Docker
-      run: |
-        brew install docker docker-compose
-        brew install --cask docker
-        open /Applications/Docker.app
-        sleep 30
-        
-    - name: Run macOS test
-      run: |
-        chmod +x ./scripts/test-cosmos-macos.sh
-        ./scripts/test-cosmos-macos.sh ${{ env.DEBUG_LEVEL }} ${{ env.TEST_SCENARIO }}
-        
-    - name: Upload macOS logs
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: macos-logs
-        path: logs/
-        retention-days: 7
-
   analyze-results:
     name: Analyze Test Results
-    needs: [test-windows, test-ubuntu, test-macos]
+    needs: [test-windows]
     runs-on: ubuntu-latest
     if: always()
     

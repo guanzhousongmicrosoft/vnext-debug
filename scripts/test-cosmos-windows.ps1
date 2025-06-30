@@ -39,6 +39,16 @@ function Test-CosmosEmulator {
         }
         
         Write-Log "Creating test Aspire project..." "INFO"
+        
+        # Check .NET and Aspire workload
+        Write-Log "Checking .NET and Aspire workload..." "INFO"
+        dotnet --version | Out-String | Write-Log
+        
+        # Install Aspire workload if not already installed
+        Write-Log "Installing Aspire workload..." "INFO"
+        dotnet workload install aspire
+        
+        # Create the project
         dotnet new aspire -n $testProjectDir
         
         if ($LASTEXITCODE -ne 0) {
