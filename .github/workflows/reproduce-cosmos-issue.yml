@@ -34,9 +34,9 @@ env:
   TEST_SCENARIO: ${{ github.event.inputs.test_scenario || 'basic' }}
 
 jobs:
-  test-windows:
-    name: Test on Windows (Control Group)
-    runs-on: windows-latest
+  test-ubuntu:
+    name: Test on Ubuntu (Issue Reproduction)
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
@@ -49,54 +49,52 @@ jobs:
         
     - name: Install .NET Aspire workload
       run: |
-        Write-Host "Installing .NET Aspire workload..."
+        echo "Installing .NET Aspire workload..."
         dotnet workload install aspire
-        Write-Host "Aspire workload installed successfully"
-      shell: powershell
+        echo "Aspire workload installed successfully"
+        
+    - name: Setup Docker
+      run: |
+        echo "Setting up Docker..."
+        sudo apt-get update
+        sudo apt-get install -y docker.io docker-compose
+        sudo systemctl start docker
+        sudo systemctl enable docker
+        sudo usermod -aG docker $USER
+        echo "Docker setup completed"
         
     - name: Check Docker availability
       run: |
-        Write-Host "Checking Docker availability..."
+        echo "Checking Docker availability..."
         docker --version
         docker info
-        Write-Host "Testing Docker functionality..."
+        echo "Testing Docker functionality..."
         docker run --rm hello-world
-        Write-Host "Docker is available and working correctly"
-      shell: powershell
+        echo "Docker is available and working correctly"
       
     - name: Pull Cosmos DB Emulator image
       run: |
-        Write-Host "Pre-pulling Cosmos DB emulator image..."
-        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
-        Write-Host "Cosmos DB emulator image pulled successfully"
-      shell: powershell
+        echo "Pre-pulling Cosmos DB emulator image..."
+        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+        echo "Cosmos DB emulator image pulled successfully"
         
-    - name: Run Windows test
-      shell: powershell
+    - name: Run Ubuntu test
       run: |
-        try {
-          Write-Host "Starting Cosmos DB emulator test..."
-          $ErrorActionPreference = "Stop"
-          ./scripts/test-cosmos-windows.ps1 -DebugLevel ${{ env.DEBUG_LEVEL }} -TestScenario ${{ env.TEST_SCENARIO }}
-          Write-Host "Test completed successfully"
-        }
-        catch {
-          Write-Host "Test failed with error: $($_.Exception.Message)"
-          Write-Host "Stack trace: $($_.Exception.StackTrace)"
-          throw
-        }
+        echo "Starting Cosmos DB emulator test..."
+        chmod +x ./scripts/test-cosmos-ubuntu.sh
+        ./scripts/test-cosmos-ubuntu.sh ${{ env.DEBUG_LEVEL }} ${{ env.TEST_SCENARIO }}
         
-    - name: Upload Windows logs
+    - name: Upload Ubuntu logs
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: windows-logs
+        name: ubuntu-logs
         path: logs/
         retention-days: 7
 
   analyze-results:
     name: Analyze Test Results
-    needs: [test-windows]
+    needs: [test-ubuntu]
     runs-on: ubuntu-latest
     if: always()
     
