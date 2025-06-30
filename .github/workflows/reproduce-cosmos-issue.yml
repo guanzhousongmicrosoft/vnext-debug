@@ -16,38 +16,12 @@ on:
 env:
   DOTNET_VERSION: '9.0.x'
   POSTGRES_VERSION: '16'
-  # Using the public Azure Cosmos DB emulator image from Microsoft Container Registry
-  COSMOS_DB_IMAGE: 'cosmosdbemulator.azurecr.io/public/cosmosdb/linux/azure-cosmos-emulator:vnext-preview'
+  # Using the official Windows Azure Cosmos DB emulator image from Microsoft Container Registry
+  COSMOS_DB_IMAGE: 'mcr.microsoft.com/cosmosdb/windows/azure-cosmos-emulator'
   
 jobs:
   reproduce-issue:
-    runs-on: ubuntu-latest
-    
-    services:
-      postgres-cosmos:
-        image: cosmosdbemulator.azurecr.io/public/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
-        env:
-          POSTGRES_PASSWORD: mypassword
-          POSTGRES_USER: postgres
-          POSTGRES_DB: postgres
-          PGUSER: postgres
-          PGPASSWORD: mypassword
-          ENABLE_DEBUG: true
-          ENABLE_TELEMETRY: false
-          # Additional environment variables based on the repository configuration
-          CITUS_ROLE: SingleNode
-          POD_IP: localhost
-          CosmosDB_CLUSTER_NAME: default
-        ports:
-          - 5432:9712  # Map host 5432 to container 9712 (default pgcosmos port)
-          - 8081:8081  # Gateway port
-          - 1234:1234  # Additional service port
-        options: >-
-          --health-cmd "pg_isready -h localhost -p 9712 -U postgres"
-          --health-interval 15s
-          --health-timeout 10s
-          --health-retries 15
-          --name cosmos-postgres
+    runs-on: windows-latest  # Changed to Windows for Windows container compatibility
     
     steps:
     - name: Checkout code
@@ -59,105 +33,112 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
         
     - name: Enable debug logging
+      shell: pwsh
       run: |
-        echo "DOTNET_LOGGING__LOGLEVEL__DEFAULT=Debug" >> $GITHUB_ENV
-        echo "ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT=Debug" >> $GITHUB_ENV
-        echo "Logging__LogLevel__Default=Debug" >> $GITHUB_ENV
+        echo "DOTNET_LOGGING__LOGLEVEL__DEFAULT=Debug" >> $env:GITHUB_ENV
+        echo "ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT=Debug" >> $env:GITHUB_ENV
+        echo "Logging__LogLevel__Default=Debug" >> $env:GITHUB_ENV
         
-    - name: Wait for PostgreSQL to be ready
+    - name: Start Cosmos DB Emulator Container
+      shell: pwsh
       run: |
-        echo "🔍 Waiting for PostgreSQL to be fully ready..."
-        # Use port 5432 which is mapped from container port 9712
-        timeout 180s bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 3; done'
-        echo "✅ PostgreSQL is ready"
+        Write-Host "🔍 Starting Cosmos DB emulator container..."
         
-        # Additional wait for pgcosmos extension to be fully loaded
-        echo "🔍 Waiting for pgcosmos extension to be ready..."
-        sleep 30
+        # Pull the image first
+        docker pull mcr.microsoft.com/cosmosdb/windows/azure-cosmos-emulator:latest
         
-    - name: Debug - Check PostgreSQL connection
+        # Start the container with proper Windows configuration
+        docker run -d --name cosmos-emulator `
+          -p 8081:8081 `
+          -p 10251:10251 `
+          -p 10252:10252 `
+          -p 10253:10253 `
+          -p 10254:10254 `
+          -e AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10 `
+          -e AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=false `
+          -e AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE=127.0.0.1 `
+          mcr.microsoft.com/cosmosdb/windows/azure-cosmos-emulator:latest
+        
+        Write-Host "✅ Container started"
+        
+    - name: Wait for Cosmos DB Emulator to be ready
+      shell: pwsh
       run: |
-        echo "🔍 Testing PostgreSQL connection..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT version();"
+        Write-Host "🔍 Waiting for Cosmos DB emulator to be ready..."
         
-        echo "🔍 Checking server status and processes..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT pg_backend_pid(), current_database(), current_user, inet_server_addr(), inet_server_port();"
+        $maxAttempts = 60
+        $attempt = 0
+        $isReady = $false
         
-    - name: Debug - Check available schemas
+        do {
+            $attempt++
+            Write-Host "Attempt $attempt/$maxAttempts - Checking if emulator is ready..."
+            
+            try {
+                $response = Invoke-WebRequest -Uri "https://localhost:8081/_explorer/emulator.pem" -SkipCertificateCheck -TimeoutSec 10 -ErrorAction Stop
+                if ($response.StatusCode -eq 200) {
+                    $isReady = $true
+                    Write-Host "✅ Cosmos DB emulator is ready!"
+                }
+            }
+            catch {
+                Write-Host "⏳ Emulator not ready yet... waiting 10 seconds"
+                Start-Sleep -Seconds 10
+            }
+        }
+        while (-not $isReady -and $attempt -lt $maxAttempts)
+        
+        if (-not $isReady) {
+            Write-Host "❌ Emulator failed to start within timeout"
+            # Show container logs for debugging
+            docker logs cosmos-emulator
+            exit 1
+        }
+        
+    - name: Debug - Check Cosmos DB Emulator status
+      shell: pwsh
       run: |
-        echo "🔍 Checking available schemas..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT schema_name FROM information_schema.schemata ORDER BY schema_name;"
+        Write-Host "🔍 Checking Cosmos DB emulator status..."
         
-    - name: Debug - Check installed extensions
-      run: |
-        echo "🔍 Checking installed extensions..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT extname, extversion FROM pg_extension;"
+        # Check container status
+        docker ps -a
         
-    - name: Debug - Check for cosmos_api schema specifically
-      run: |
-        echo "🔍 Checking for cosmos_api schema..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'cosmos_api') AS cosmos_api_exists;"
+        # Check if emulator endpoint is responding
+        try {
+            $response = Invoke-WebRequest -Uri "https://localhost:8081/" -SkipCertificateCheck -TimeoutSec 10
+            Write-Host "✅ Emulator endpoint is responding: $($response.StatusCode)"
+        }
+        catch {
+            Write-Host "❌ Emulator endpoint not responding: $($_.Exception.Message)"
+        }
         
-        echo "🔍 Checking for other cosmos schemas..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'cosmos%' ORDER BY schema_name;"
-        
-    - name: Debug - Check cosmos_api functions if schema exists
-      continue-on-error: true
-      run: |
-        echo "🔍 Checking cosmos_api functions..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'cosmos_api' ORDER BY routine_name;"
-        
-        echo "🔍 Checking if cosmos_api.list_databases function exists..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT EXISTS(SELECT 1 FROM information_schema.routines WHERE routine_schema = 'cosmos_api' AND routine_name = 'list_databases') AS list_databases_exists;"
-        
-    - name: Debug - Try to create cosmos_api schema manually
-      continue-on-error: true
-      run: |
-        echo "🔍 Attempting to create cosmos_api schema manually..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "CREATE SCHEMA IF NOT EXISTS cosmos_api;"
-        
-        echo "🔍 Attempting to create pgcosmos extension if not exists..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "CREATE EXTENSION IF NOT EXISTS pgcosmos CASCADE;"
-        
-        echo "🔍 Checking if extension creation worked..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'cosmos_api') AS cosmos_api_exists_after_manual_creation;"
-        
-    - name: Debug - Check PostgreSQL logs
-      run: |
-        echo "🔍 Checking PostgreSQL container logs..."
-        docker logs cosmos-postgres 2>&1 | tail -50
-        
-    - name: Debug - Check PostgreSQL configuration
-      run: |
-        echo "🔍 Checking PostgreSQL configuration..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SHOW shared_preload_libraries;"
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SHOW log_min_messages;"
-        
-        echo "🔍 Checking PostgreSQL settings relevant to pgcosmos..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SHOW port;" || echo "Port setting not available"
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SHOW listen_addresses;" || echo "Listen addresses not available"
-        
-        echo "🔍 Checking database encoding and collation..."
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT datname, encoding, datcollate, datctype FROM pg_database WHERE datname='postgres';"
+        # Check container logs
+        Write-Host "🔍 Container logs (last 50 lines):"
+        docker logs cosmos-emulator --tail 50
         
     - name: Create minimal .NET Aspire test project
+      shell: pwsh
       run: |
-        echo "🚀 Creating minimal .NET Aspire test project..."
-        mkdir -p test-project
-        cd test-project
+        Write-Host "🚀 Creating minimal .NET Aspire test project..."
+        New-Item -Path "test-project" -ItemType Directory -Force
+        Set-Location test-project
         
         # Create Aspire AppHost project
         dotnet new aspire-apphost -n TestAspire.AppHost
-        cd TestAspire.AppHost
+        Set-Location TestAspire.AppHost
         
         # Add Aspire Cosmos DB package
-        dotnet add package Aspire.Hosting.Azure.CosmosDB --prerelease || dotnet add package Aspire.Hosting.Azure.CosmosDB
+        dotnet add package Aspire.Hosting.Azure.CosmosDB --prerelease
+        if ($LASTEXITCODE -ne 0) {
+            dotnet add package Aspire.Hosting.Azure.CosmosDB
+        }
         
     - name: Create test Aspire configuration
+      shell: pwsh
       run: |
-        cd test-project/TestAspire.AppHost
+        Set-Location test-project/TestAspire.AppHost
         
-        cat > Program.cs << 'EOF'
+        @'
         using Aspire.Hosting;
         using Aspire.Hosting.Azure;
         
@@ -167,14 +148,9 @@ jobs:
         
         var cosmos = builder
             .AddAzureCosmosDB("database")
-            .RunAsPreviewEmulator(options =>
+            .RunAsEmulator(options =>
             {
                 options.WithLifetime(ContainerLifetime.Persistent);
-                options.WithAnnotation(new ContainerImageAnnotation 
-                { 
-                    Image = "mcr.microsoft.com/cosmosdb/postgres",
-                    Tag = "latest"
-                });
             });
         
         Console.WriteLine("🔍 Adding database and container...");
@@ -186,163 +162,217 @@ jobs:
         
         Console.WriteLine("🚀 Starting application...");
         app.Run();
-        EOF
+'@ | Out-File -FilePath "Program.cs" -Encoding UTF8
         
     - name: Create test console app
+      shell: pwsh
       run: |
-        cd test-project
+        Set-Location test-project
         
         # Create console app to test Cosmos connection
         dotnet new console -n TestConsoleApp
-        cd TestConsoleApp
+        Set-Location TestConsoleApp
         
         # Add required packages
-        dotnet add package Microsoft.Azure.Cosmos --prerelease || dotnet add package Microsoft.Azure.Cosmos
-        dotnet add package Npgsql
+        dotnet add package Microsoft.Azure.Cosmos --prerelease
+        if ($LASTEXITCODE -ne 0) {
+            dotnet add package Microsoft.Azure.Cosmos
+        }
         
-        cat > Program.cs << 'EOF'
+        @'
         using Microsoft.Azure.Cosmos;
-        using Npgsql;
         using System;
         using System.Threading.Tasks;
         
         Console.WriteLine("🔍 Testing Cosmos DB connection...");
         
-        // Test direct PostgreSQL connection first
-        Console.WriteLine("🔍 Testing direct PostgreSQL connection...");
-        try
-        {
-            var connectionString = "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=mypassword";
-            using var conn = new NpgsqlConnection(connectionString);
-            await conn.OpenAsync();
-            
-            // Check if cosmos_api schema exists
-            using var cmd = new NpgsqlCommand("SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'cosmos_api')", conn);
-            var exists = (bool)await cmd.ExecuteScalarAsync();
-            Console.WriteLine($"✅ cosmos_api schema exists: {exists}");
-            
-            if (!exists)
-            {
-                Console.WriteLine("❌ cosmos_api schema does not exist!");
-                
-                // Try to list available schemas
-                using var schemaCmd = new NpgsqlCommand("SELECT schema_name FROM information_schema.schemata ORDER BY schema_name", conn);
-                using var reader = await schemaCmd.ExecuteReaderAsync();
-                Console.WriteLine("📋 Available schemas:");
-                while (await reader.ReadAsync())
-                {
-                    Console.WriteLine($"  - {reader.GetString(0)}");
-                }
-            }
-            else
-            {
-                // Try to call a cosmos_api function
-                try
-                {
-                    using var cosmosCmd = new NpgsqlCommand("SELECT * FROM cosmos_api.list_databases('{}');", conn);
-                    var result = await cosmosCmd.ExecuteScalarAsync();
-                    Console.WriteLine($"✅ cosmos_api.list_databases() works: {result}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"❌ cosmos_api.list_databases() failed: {ex.Message}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ PostgreSQL connection failed: {ex.Message}");
-        }
-        
-        // Test Cosmos SDK connection
+        // Test Cosmos SDK connection using the standard emulator settings
         Console.WriteLine("🔍 Testing Cosmos SDK connection...");
         try
         {
-            // Use the correct gateway port for Cosmos SDK connection
-            var cosmosClient = new CosmosClient("http://localhost:8081", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==");
-            var database = await cosmosClient.CreateDatabaseIfNotExistsAsync("MyDb");
-            Console.WriteLine("✅ Cosmos SDK connection successful");
+            // Use the standard Cosmos DB emulator connection string and key
+            var cosmosClient = new CosmosClient(
+                "https://localhost:8081", 
+                "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
+                new CosmosClientOptions
+                {
+                    HttpClientFactory = () => {
+                        var handler = new HttpClientHandler()
+                        {
+                            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                        };
+                        return new HttpClient(handler);
+                    }
+                });
+                
+            Console.WriteLine("🔍 Creating database...");
+            var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync("MyDb");
+            Console.WriteLine($"✅ Database creation status: {databaseResponse.StatusCode}");
+            
+            Console.WriteLine("🔍 Creating container...");
+            var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync("Users", "/emailAddress");
+            Console.WriteLine($"✅ Container creation status: {containerResponse.StatusCode}");
+            
+            Console.WriteLine("✅ Cosmos SDK connection and operations successful!");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Cosmos SDK connection failed: {ex.Message}");
             Console.WriteLine($"Full exception: {ex}");
+            
+            // This should reproduce the issue from GitHub issue #199
+            if (ex.Message.Contains("cosmos_api") || ex.Message.Contains("schema") || ex.Message.Contains("does not exist"))
+            {
+                Console.WriteLine("🎯 REPRODUCED: This appears to be the same issue as GitHub issue #199!");
+            }
         }
         
         Console.WriteLine("🏁 Test completed");
-        EOF
+'@ | Out-File -FilePath "Program.cs" -Encoding UTF8
         
-    - name: Run PostgreSQL connection test
+    - name: Run Cosmos DB connection test
+      shell: pwsh
       run: |
-        cd test-project/TestConsoleApp
-        echo "🧪 Running PostgreSQL connection test..."
+        Set-Location test-project/TestConsoleApp
+        Write-Host "🧪 Running Cosmos DB connection test..."
         dotnet run
         
     - name: Build Aspire project
+      shell: pwsh
       run: |
-        cd test-project/TestAspire.AppHost
-        echo "🔨 Building Aspire project..."
+        Set-Location test-project/TestAspire.AppHost
+        Write-Host "🔨 Building Aspire project..."
         dotnet build --verbosity detailed
         
-    - name: Debug - Final PostgreSQL state check
-      run: |
-        echo "🔍 Final state check..."
-        echo "Container status:"
-        docker ps -a
-        echo ""
-        echo "Container logs (last 100 lines):"
-        docker logs cosmos-postgres 2>&1 | tail -100
-        echo ""
-        echo "PostgreSQL process check:"
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT pg_backend_pid(), current_database(), current_user;"
-        
-    - name: Attempt to reproduce the exact error
+    - name: Test Aspire application startup
+      shell: pwsh
       continue-on-error: true
       run: |
-        echo "🎯 Attempting to reproduce the exact error from issue #199..."
+        Set-Location test-project/TestAspire.AppHost
+        Write-Host "🚀 Testing Aspire application startup..."
         
-        # Try the exact operation that fails
-        PGPASSWORD=mypassword psql -h localhost -p 5432 -U postgres -d postgres -c "
-        DO \$\$
-        BEGIN
-            -- Attempt to call the function that causes the error
-            IF EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'cosmos_api') THEN
-                RAISE NOTICE 'cosmos_api schema exists, testing functions...';
-                PERFORM cosmos_api.list_databases('{}');
-                RAISE NOTICE 'cosmos_api.list_databases() works!';
-            ELSE
-                RAISE EXCEPTION 'schema \"cosmos_api\" does not exist';
-            END IF;
-        EXCEPTION
-            WHEN others THEN
-                RAISE NOTICE 'Error occurred: %', SQLERRM;
-                RAISE;
-        END;
-        \$\$;
-        "
+        # Start the Aspire application with timeout
+        $job = Start-Job -ScriptBlock {
+            Set-Location $using:PWD
+            dotnet run --no-build
+        }
+        
+        # Wait for 60 seconds and then stop
+        Wait-Job $job -Timeout 60
+        
+        if ($job.State -eq "Running") {
+            Write-Host "⏰ Aspire application still running after 60 seconds, stopping..."
+            Stop-Job $job
+        }
+        
+        # Get any output/errors
+        $output = Receive-Job $job
+        Write-Host "📋 Aspire application output:"
+        Write-Host $output
+        
+        Remove-Job $job
+        
+    - name: Debug - Final emulator state check
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Final state check..."
+        Write-Host "Container status:"
+        docker ps -a
+        Write-Host ""
+        Write-Host "Container logs (last 100 lines):"
+        docker logs cosmos-emulator --tail 100
+        Write-Host ""
+        Write-Host "Emulator endpoint test:"
+        try {
+            $response = Invoke-WebRequest -Uri "https://localhost:8081/" -SkipCertificateCheck -TimeoutSec 5
+            Write-Host "Emulator responding: $($response.StatusCode)"
+        }
+        catch {
+            Write-Host "Emulator not responding: $($_.Exception.Message)"
+        }
+        
+    - name: Attempt to reproduce the exact error from issue #199
+      shell: pwsh
+      continue-on-error: true
+      run: |
+        Write-Host "🎯 Attempting to reproduce the exact error from issue #199..."
+        
+        # Try to simulate the .NET Aspire scenario that fails
+        try {
+            Write-Host "Testing database creation that should trigger the cosmos_api schema error..."
+            
+            # This simulates what .NET Aspire does internally
+            $cosmosClient = New-Object Microsoft.Azure.Cosmos.CosmosClient -ArgumentList @(
+                "https://localhost:8081",
+                "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+            )
+            
+            # This operation should trigger the schema error if it exists
+            $database = $cosmosClient.CreateDatabaseIfNotExistsAsync("MyDb").GetAwaiter().GetResult()
+            Write-Host "✅ Database operation succeeded - issue may not be reproduced in this environment"
+        }
+        catch {
+            Write-Host "❌ Database operation failed: $($_.Exception.Message)"
+            
+            # Check if this is the specific error from the GitHub issue
+            if ($_.Exception.Message -like "*cosmos_api*" -or $_.Exception.Message -like "*schema*does not exist*") {
+                Write-Host "🎯 SUCCESS: Reproduced the exact error from GitHub issue #199!"
+                Write-Host "Error details: $($_.Exception.ToString())"
+            } else {
+                Write-Host "This appears to be a different error than issue #199"
+            }
+        }
         
     - name: Collect diagnostic information
       if: always()
+      shell: pwsh
       run: |
-        echo "📊 Collecting diagnostic information..."
-        echo "=== Environment ==="
-        printenv | grep -E "(POSTGRES|COSMOS|DOTNET|ASPNET)" | sort
-        echo ""
-        echo "=== Docker info ==="
+        Write-Host "📊 Collecting diagnostic information..."
+        Write-Host "=== Environment ==="
+        Get-ChildItem Env: | Where-Object { $_.Name -match "(COSMOS|DOTNET|ASPNET)" } | Sort-Object Name
+        Write-Host ""
+        Write-Host "=== Docker info ==="
         docker version
         docker info
-        echo ""
-        echo "=== System info ==="
-        uname -a
-        echo ""
-        echo "=== Network info ==="
-        netstat -tulpn | grep -E ":(5432|8081|9712|1234)" || echo "Cosmos DB ports not found"
-        echo ""
-        echo "=== Container network inspection ==="
-        docker inspect cosmos-postgres --format='{{.NetworkSettings.Ports}}' || echo "Container network info not available"
-        echo ""
-        echo "=== Final container status ==="
+        Write-Host ""
+        Write-Host "=== System info ==="
+        Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, TotalPhysicalMemory
+        Write-Host ""
+        Write-Host "=== Network info ==="
+        Get-NetTCPConnection | Where-Object { $_.LocalPort -in @(8081, 10251, 10252, 10253, 10254) } | Format-Table
+        Write-Host ""
+        Write-Host "=== Container network inspection ==="
+        try { docker inspect cosmos-emulator --format='{{.NetworkSettings.Ports}}' } catch { Write-Host "Container network info not available" }
+        Write-Host ""
+        Write-Host "=== Final container status ==="
         docker ps -a
+        
+    - name: Create logs file
+      if: always()
+      shell: pwsh
+      run: |
+        Write-Host "Creating comprehensive log file..."
+        
+        $logContent = @"
+=== GitHub Actions Debug Log ===
+Date: $(Get-Date)
+Runner: windows-latest  
+Issue: https://github.com/Azure/azure-cosmos-db-emulator-docker/issues/199
+
+=== Container Logs ===
+$(docker logs cosmos-emulator 2>&1)
+
+=== Environment Variables ===
+$(Get-ChildItem Env: | Sort-Object Name | Out-String)
+
+=== System Information ===
+$(Get-ComputerInfo | Out-String)
+
+=== Network Information ===
+$(Get-NetTCPConnection | Where-Object { $_.LocalPort -in @(8081, 10251, 10252, 10253, 10254) } | Format-Table | Out-String)
+"@
+        
+        $logContent | Out-File -FilePath "$env:TEMP\cosmos-emulator-logs.txt" -Encoding UTF8
         
     - name: Upload logs as artifact
       if: always()
@@ -350,22 +380,5 @@ jobs:
       with:
         name: debug-logs
         path: |
-          /tmp/postgres-logs.txt
+          ${{ runner.temp }}\cosmos-emulator-logs.txt
         retention-days: 5
-        
-    - name: Create logs file
-      if: always()
-      run: |
-        echo "Creating comprehensive log file..."
-        {
-          echo "=== GitHub Actions Debug Log ==="
-          echo "Date: $(date)"
-          echo "Runner: ubuntu-latest"
-          echo "Issue: https://github.com/Azure/azure-cosmos-db-emulator-docker/issues/199"
-          echo ""
-          echo "=== Container Logs ==="
-          docker logs cosmos-postgres 2>&1
-          echo ""
-          echo "=== Environment Variables ==="
-          printenv | sort
-        } > /tmp/postgres-logs.txt
