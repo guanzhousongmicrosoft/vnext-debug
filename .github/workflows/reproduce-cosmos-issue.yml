@@ -10,7 +10,7 @@ on:
       debug_mode:
         description: 'Enable debug mode'
         required: false
-        default: 'true'
+        default: true
         type: boolean
 
 env:
@@ -138,8 +138,8 @@ jobs:
       run: |
         Set-Location test-project/TestAspire.AppHost
         
-        $programContent = @"
-        using Aspire.Hosting;
+        # Create the Program.cs content
+        $content = 'using Aspire.Hosting;
         using Aspire.Hosting.Azure;
         
         var builder = DistributedApplication.CreateBuilder(args);
@@ -161,10 +161,9 @@ jobs:
         var app = builder.Build();
         
         Console.WriteLine("🚀 Starting application...");
-        app.Run();
-"@
+        app.Run();'
         
-        $programContent | Out-File -FilePath "Program.cs" -Encoding UTF8
+        $content | Out-File -FilePath "Program.cs" -Encoding UTF8
         
     - name: Create test console app
       shell: pwsh
@@ -181,8 +180,7 @@ jobs:
             dotnet add package Microsoft.Azure.Cosmos
         }
         
-        $consoleAppContent = @"
-        using Microsoft.Azure.Cosmos;
+        $consoleAppContent = 'using Microsoft.Azure.Cosmos;
         using System;
         using System.Threading.Tasks;
         
@@ -209,18 +207,18 @@ jobs:
                 
             Console.WriteLine("🔍 Creating database...");
             var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync("MyDb");
-            Console.WriteLine(`$"✅ Database creation status: {databaseResponse.StatusCode}");
+            Console.WriteLine($"✅ Database creation status: {databaseResponse.StatusCode}");
             
             Console.WriteLine("🔍 Creating container...");
             var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync("Users", "/emailAddress");
-            Console.WriteLine(`$"✅ Container creation status: {containerResponse.StatusCode}");
+            Console.WriteLine($"✅ Container creation status: {containerResponse.StatusCode}");
             
             Console.WriteLine("✅ Cosmos SDK connection and operations successful!");
         }
         catch (Exception ex)
         {
-            Console.WriteLine(`$"❌ Cosmos SDK connection failed: {ex.Message}");
-            Console.WriteLine(`$"Full exception: {ex}");
+            Console.WriteLine($"❌ Cosmos SDK connection failed: {ex.Message}");
+            Console.WriteLine($"Full exception: {ex}");
             
             // This should reproduce the issue from GitHub issue #199
             if (ex.Message.Contains("cosmos_api") || ex.Message.Contains("schema") || ex.Message.Contains("does not exist"))
@@ -229,8 +227,7 @@ jobs:
             }
         }
         
-        Console.WriteLine("🏁 Test completed");
-"@
+        Console.WriteLine("🏁 Test completed");'
         
         $consoleAppContent | Out-File -FilePath "Program.cs" -Encoding UTF8
         
@@ -357,26 +354,29 @@ jobs:
       run: |
         Write-Host "Creating comprehensive log file..."
         
-        $logContent = @"
-=== GitHub Actions Debug Log ===
-Date: $(Get-Date)
-Runner: windows-latest  
-Issue: https://github.com/Azure/azure-cosmos-db-emulator-docker/issues/199
-
-=== Container Logs ===
-$(docker logs cosmos-emulator 2>&1)
-
-=== Environment Variables ===
-$(Get-ChildItem Env: | Sort-Object Name | Out-String)
-
-=== System Information ===
-$(Get-ComputerInfo | Out-String)
-
-=== Network Information ===
-$(Get-NetTCPConnection | Where-Object { $_.LocalPort -in @(8081, 10251, 10252, 10253, 10254) } | Format-Table | Out-String)
-"@
+        # Create log content step by step to avoid YAML parsing issues
+        $logFile = "$env:TEMP\cosmos-emulator-logs.txt"
         
-        $logContent | Out-File -FilePath "$env:TEMP\cosmos-emulator-logs.txt" -Encoding UTF8
+        "=== GitHub Actions Debug Log ===" | Out-File -FilePath $logFile -Encoding UTF8
+        "Date: $(Get-Date)" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        "Runner: windows-latest" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        "Issue: https://github.com/Azure/azure-cosmos-db-emulator-docker/issues/199" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        "" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        
+        "=== Container Logs ===" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        docker logs cosmos-emulator 2>&1 | Out-File -FilePath $logFile -Append -Encoding UTF8
+        "" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        
+        "=== Environment Variables ===" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        Get-ChildItem Env: | Sort-Object Name | Out-File -FilePath $logFile -Append -Encoding UTF8
+        "" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        
+        "=== System Information ===" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        Get-ComputerInfo | Out-File -FilePath $logFile -Append -Encoding UTF8
+        "" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        
+        "=== Network Information ===" | Out-File -FilePath $logFile -Append -Encoding UTF8
+        Get-NetTCPConnection | Where-Object { $_.LocalPort -in @(8081, 10251, 10252, 10253, 10254) } | Format-Table | Out-File -FilePath $logFile -Append -Encoding UTF8
         
     - name: Upload logs as artifact
       if: always()
