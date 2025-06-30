@@ -98,21 +98,35 @@ using Microsoft.Extensions.DependencyInjection;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+// Enable detailed logging
+builder.Services.AddLogging(logging =>
+{
+    logging.AddConsole();
+    logging.SetMinimumLevel(LogLevel.Debug);
+});
+
 try
 {
+    Console.WriteLine("=== Starting Aspire AppHost ===");
+    
     // Configure Cosmos DB emulator with detailed settings
+    Console.WriteLine("Configuring Cosmos DB emulator...");
     var cosmos = builder
         .AddAzureCosmosDB("database")
         .RunAsEmulator();
 
+    Console.WriteLine("Adding MyDb database...");
     var database = cosmos.AddDatabase("MyDb");
 
     // Add a simple API project that uses Cosmos with a fixed port
+    Console.WriteLine("Adding TestApi project...");
     var api = builder.AddProject<Projects.TestApi>("api")
         .WithReference(cosmos)
         .WithHttpEndpoint(port: 5000, env: "HTTP_PORT")
-        .WithEnvironment("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
+        .WithEnvironment("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true")
+        .WithEnvironment("DOTNET_ENVIRONMENT", "Development");
 
+    Console.WriteLine("Building Aspire application...");
     var app = builder.Build();
     
     // Add startup logging
@@ -120,11 +134,13 @@ try
     logger.LogInformation("Starting Aspire application with Cosmos DB emulator...");
     logger.LogInformation("API should be available at: http://localhost:5000");
     
+    Console.WriteLine("Starting Aspire application...");
     app.Run();
 }
 catch (Exception ex)
 {
     Console.WriteLine($"Failed to start application: {ex}");
+    Console.WriteLine($"Stack trace: {ex.StackTrace}");
     throw;
 }
 EOF
@@ -150,6 +166,10 @@ EOF
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.49.0" />
     <PackageReference Include="Aspire.Microsoft.Azure.Cosmos" Version="9.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../test-aspire-project.ServiceDefaults/test-aspire-project.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
@@ -352,6 +372,9 @@ using Aspire.Microsoft.Azure.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add Aspire service defaults
+builder.AddServiceDefaults();
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -379,6 +402,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Map Aspire service defaults
+app.MapDefaultEndpoints();
+
 // Configure the HTTP request pipeline.
 app.UseCors();
 
@@ -392,6 +418,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Logger.LogInformation("TestApi starting up...");
+app.Logger.LogInformation("Listening on: {Urls}", string.Join(", ", app.Urls));
 
 app.Run();
 EOF
@@ -475,6 +502,19 @@ EOF
         log "No TestApi processes found - this might be the issue!" "WARN"
         log "All .NET processes:" "INFO"
         ps aux | grep dotnet | grep -v grep | tee -a "$LOG_FILE"
+        
+        # Check Aspire logs for errors about TestApi
+        if [[ -f "$absolute_log_dir/aspire-output-$TIMESTAMP.log" ]]; then
+            log "Checking Aspire logs for TestApi startup issues..." "INFO"
+            if grep -i "testapi\|error\|exception\|failed" "$absolute_log_dir/aspire-output-$TIMESTAMP.log" | head -20; then
+                log "Found potential issues in Aspire logs" "WARN"
+            else
+                log "No obvious errors found in Aspire logs" "INFO"
+            fi
+            
+            log "Full Aspire log output:" "INFO"
+            cat "$absolute_log_dir/aspire-output-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+        fi
     fi
     
     # Try to connect to the API and test Cosmos
