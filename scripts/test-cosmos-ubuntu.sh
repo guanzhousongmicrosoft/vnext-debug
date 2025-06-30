@@ -124,18 +124,32 @@ EOF
 
     # Create test API project
     log "Creating test API project..." "INFO"
-    dotnet new webapi -n TestApi
     
-    # Modify the project file to target .NET 8.0 to match Aspire
+    # Create a clean .NET 8.0 project manually to avoid compatibility issues
+    mkdir -p TestApi/Controllers
+    
+    # Create the project file targeting .NET 8.0
+    cat > TestApi/TestApi.csproj << 'EOF'
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.11" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.47.2" />
+    <PackageReference Include="Aspire.Microsoft.Azure.Cosmos" Version="9.3.1" />
+  </ItemGroup>
+
+</Project>
+EOF
+
     cd TestApi
-    sed -i 's/<TargetFramework>net9.0<\/TargetFramework>/<TargetFramework>net8.0<\/TargetFramework>/' TestApi.csproj
-    log "Updated TestApi to target .NET 8.0 to match Aspire project" "INFO"
-    
-    # Add Cosmos client to API
-    dotnet add package Microsoft.Azure.Cosmos
-    dotnet add package Aspire.Microsoft.Azure.Cosmos
-    dotnet add package Microsoft.Azure.Cosmos
-    dotnet add package Aspire.Microsoft.Azure.Cosmos
+    log "Created clean .NET 8.0 TestApi project" "INFO"
     
     # Create a comprehensive controller that tests Cosmos connectivity
     mkdir -p Controllers
