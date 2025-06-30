@@ -26,7 +26,27 @@ var api = builder.AddProject("api", "../TestApi/TestApi.csproj")
 
 This change uses the direct project path instead of relying on the `Projects` reference which wasn't properly generated.
 
-### 2. Improved TestApi Creation Process
+### 2. Fixed Endpoint Configuration Conflict
+**Issue:** Aspire was throwing `Endpoint with name 'http' already exists` error.
+
+**Before:**
+```csharp
+.WithHttpEndpoint(port: 5000, env: "HTTP_PORT")
+```
+
+**After:**
+```csharp
+// Removed explicit endpoint configuration to avoid conflicts
+// Using environment variables and launchSettings.json instead
+.WithEnvironment("ASPNETCORE_URLS", "http://localhost:5000")
+```
+
+**Additional fixes:**
+- Added `launchSettings.json` with proper port configuration
+- Used `builder.WebHost.UseUrls("http://localhost:5000")` in TestApi
+- Removed conflicting endpoint configurations
+
+### 3. Improved TestApi Creation Process
 **Before:**
 - Created directories and files manually
 - Used `mkdir -p TestApi/Controllers`
@@ -36,13 +56,13 @@ This change uses the direct project path instead of relying on the `Projects` re
 - Ensures all required files and directories are created correctly
 - Better integration with the .NET build system
 
-### 3. Enhanced Build Process
+### 4. Enhanced Build Process
 - Added `dotnet restore` step before building
 - Added build output verification to ensure DLLs are created
 - Better error reporting for build failures
 - Separated build and run phases for better debugging
 
-### 4. Improved Logging and Debugging
+### 5. Improved Logging and Debugging
 **Before:**
 - Single log file mixing stdout/stderr
 - Limited error detection
@@ -53,7 +73,7 @@ This change uses the direct project path instead of relying on the `Projects` re
 - Better environment variable logging
 - More detailed process monitoring
 
-### 5. Enhanced Environment Configuration
+### 6. Enhanced Environment Configuration
 Added additional environment variables for better debugging:
 ```bash
 export ASPNETCORE_ENVIRONMENT="Development"
@@ -61,7 +81,7 @@ export ASPIRE_ALLOW_UNSECURED_TRANSPORT="true"
 export DOTNET_ENVIRONMENT="Development"
 ```
 
-### 6. Better Project Integration
+### 7. Better Project Integration
 - Proper solution file management with `dotnet sln add`
 - Correct project reference setup
 - Proper dependency resolution order

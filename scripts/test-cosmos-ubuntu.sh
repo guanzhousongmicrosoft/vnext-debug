@@ -123,7 +123,6 @@ try
     Console.WriteLine("Adding TestApi project...");
     var api = builder.AddProject("api", "../TestApi/TestApi.csproj")
         .WithReference(cosmos)
-        .WithHttpEndpoint(port: 5000, env: "HTTP_PORT")
         .WithEnvironment("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true")
         .WithEnvironment("DOTNET_ENVIRONMENT", "Development")
         .WithEnvironment("ASPNETCORE_URLS", "http://localhost:5000");
@@ -187,6 +186,25 @@ EOF
 EOF
 
     log "Updated TestApi project file with required packages" "INFO"
+    
+    # Create Properties directory and launchSettings.json
+    mkdir -p TestApi/Properties
+    cat > TestApi/Properties/launchSettings.json << 'EOF'
+{
+  "profiles": {
+    "TestApi": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+EOF
+
+    log "Created launchSettings.json for TestApi" "INFO"
     
     
     # Create a comprehensive controller that tests Cosmos connectivity
@@ -385,6 +403,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Aspire service defaults
 builder.AddServiceDefaults();
 
+// Configure URLs explicitly
+builder.WebHost.UseUrls("http://localhost:5000");
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -428,7 +449,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Logger.LogInformation("TestApi starting up...");
-app.Logger.LogInformation("Listening on: {Urls}", string.Join(", ", app.Urls));
+app.Logger.LogInformation("Configured to listen on: http://localhost:5000");
 
 app.Run();
 EOF

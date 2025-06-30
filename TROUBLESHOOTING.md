@@ -28,7 +28,20 @@
 - ✅ Added proper restore step before build
 - ✅ Added build output verification
 
-### 3. Docker Container Issues
+### 3. Endpoint Configuration Conflicts
+
+**Symptoms:**
+- `Endpoint with name 'http' already exists` error
+- Aspire AppHost fails to start
+- Multiple endpoint configuration conflicts
+
+**Solutions (Applied in Improvements):**
+- ✅ Removed conflicting `WithHttpEndpoint` calls
+- ✅ Use environment variables for URL configuration instead
+- ✅ Added proper `launchSettings.json` configuration
+- ✅ Use `builder.WebHost.UseUrls()` in the API project
+
+### 4. Docker Container Issues
 
 **Symptoms:**
 - Cosmos emulator container not starting
@@ -40,7 +53,7 @@
 - ✅ Enhanced container logging and monitoring
 - ✅ Better error detection for container failures
 
-### 4. Logging and Debugging
+### 5. Logging and Debugging
 
 **Symptoms:**
 - Insufficient log information
