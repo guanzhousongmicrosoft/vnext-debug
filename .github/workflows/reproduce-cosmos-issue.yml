@@ -138,7 +138,7 @@ jobs:
       run: |
         Set-Location test-project/TestAspire.AppHost
         
-        @'
+        $programContent = @"
         using Aspire.Hosting;
         using Aspire.Hosting.Azure;
         
@@ -162,7 +162,9 @@ jobs:
         
         Console.WriteLine("🚀 Starting application...");
         app.Run();
-'@ | Out-File -FilePath "Program.cs" -Encoding UTF8
+"@
+        
+        $programContent | Out-File -FilePath "Program.cs" -Encoding UTF8
         
     - name: Create test console app
       shell: pwsh
@@ -179,7 +181,7 @@ jobs:
             dotnet add package Microsoft.Azure.Cosmos
         }
         
-        @'
+        $consoleAppContent = @"
         using Microsoft.Azure.Cosmos;
         using System;
         using System.Threading.Tasks;
@@ -207,18 +209,18 @@ jobs:
                 
             Console.WriteLine("🔍 Creating database...");
             var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync("MyDb");
-            Console.WriteLine($"✅ Database creation status: {databaseResponse.StatusCode}");
+            Console.WriteLine(`$"✅ Database creation status: {databaseResponse.StatusCode}");
             
             Console.WriteLine("🔍 Creating container...");
             var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync("Users", "/emailAddress");
-            Console.WriteLine($"✅ Container creation status: {containerResponse.StatusCode}");
+            Console.WriteLine(`$"✅ Container creation status: {containerResponse.StatusCode}");
             
             Console.WriteLine("✅ Cosmos SDK connection and operations successful!");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Cosmos SDK connection failed: {ex.Message}");
-            Console.WriteLine($"Full exception: {ex}");
+            Console.WriteLine(`$"❌ Cosmos SDK connection failed: {ex.Message}");
+            Console.WriteLine(`$"Full exception: {ex}");
             
             // This should reproduce the issue from GitHub issue #199
             if (ex.Message.Contains("cosmos_api") || ex.Message.Contains("schema") || ex.Message.Contains("does not exist"))
@@ -228,7 +230,9 @@ jobs:
         }
         
         Console.WriteLine("🏁 Test completed");
-'@ | Out-File -FilePath "Program.cs" -Encoding UTF8
+"@
+        
+        $consoleAppContent | Out-File -FilePath "Program.cs" -Encoding UTF8
         
     - name: Run Cosmos DB connection test
       shell: pwsh
