@@ -15,7 +15,13 @@ LOG_FILE="$(pwd)/$LOG_DIR/cosmos-test-ubuntu-$TIMESTAMP.log"
 log() {
     local level=${2:-INFO}
     local message="$(date '+%Y-%m-%d %H:%M:%S') [$level] $1"
-    echo "$message" | tee -a "$LOG_FILE"
+    
+    # Only show DEBUG messages if DEBUG_LEVEL is 3 or higher
+    if [[ "$level" == "DEBUG" && $DEBUG_LEVEL -lt 3 ]]; then
+        echo "$message" >> "$LOG_FILE"
+    else
+        echo "$message" | tee -a "$LOG_FILE"
+    fi
 }
 
 cleanup() {
@@ -101,9 +107,10 @@ try
 
     var database = cosmos.AddDatabase("MyDb");
 
-    // Add a simple API project that uses Cosmos
+    // Add a simple API project that uses Cosmos with a fixed port
     var api = builder.AddProject<Projects.TestApi>("api")
         .WithReference(cosmos)
+        .WithHttpEndpoint(port: 5000, env: "HTTP_PORT")
         .WithEnvironment("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
 
     var app = builder.Build();
@@ -111,6 +118,7 @@ try
     // Add startup logging
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
     logger.LogInformation("Starting Aspire application with Cosmos DB emulator...");
+    logger.LogInformation("API should be available at: http://localhost:5000");
     
     app.Run();
 }
@@ -457,35 +465,41 @@ EOF
         fi
     fi
     
+    # Check if TestApi process is running
+    log "Checking for TestApi processes..." "INFO"
+    local testapi_processes=$(ps aux | grep -i testapi | grep -v grep || true)
+    if [[ -n "$testapi_processes" ]]; then
+        log "Found TestApi processes:" "INFO"
+        echo "$testapi_processes" | tee -a "$LOG_FILE"
+    else
+        log "No TestApi processes found - this might be the issue!" "WARN"
+        log "All .NET processes:" "INFO"
+        ps aux | grep dotnet | grep -v grep | tee -a "$LOG_FILE"
+    fi
+    
     # Try to connect to the API and test Cosmos
     local max_retries=20
     local retry_count=0
     local test_success=false
     
-    # Try different ports that Aspire might assign
-    local possible_ports=(5000 5001 7000 7001 8080 8081)
-    local api_url=""
+    # Use the fixed port we configured in Aspire
+    local api_port=5000
+    local health_url="http://localhost:$api_port/CosmosTest/health"
+    local test_url="http://localhost:$api_port/CosmosTest/test"
     
-    # First, try to find the actual port from Aspire dashboard or logs
-    sleep 5
+    log "API should be available at: $health_url" "INFO"
     
     while [[ $retry_count -lt $max_retries && "$test_success" != "true" ]]; do
         ((retry_count++))
-        log "Attempt $retry_count/$max_retries: Testing API connection..." "INFO"
+        log "Attempt $retry_count/$max_retries: Testing API connection on port $api_port..." "INFO"
         
-        for port in "${possible_ports[@]}"; do
-            api_url="http://localhost:$port/CosmosTest/test"
+        if curl -f -s -m 10 "$health_url" > /dev/null 2>&1; then
+            log "Found API running on port $api_port" "INFO"
             
-            if curl -f -s -m 10 "http://localhost:$port/CosmosTest/health" > /dev/null 2>&1; then
-                log "Found API running on port $port" "INFO"
-                break
-            fi
-        done
-        
-        if [[ -n "$api_url" ]]; then
             local response_file="$absolute_log_dir/api-response-$retry_count-$TIMESTAMP.json"
             
-            if curl -f -s -m 30 "$api_url" -o "$response_file" 2>/dev/null; then
+            log "Testing API endpoint: $test_url" "INFO"
+            if curl -f -s -m 30 "$test_url" -o "$response_file" 2>/dev/null; then
                 log "API test successful! Response saved to $response_file" "INFO"
                 cat "$response_file" | jq '.' 2>/dev/null || cat "$response_file"
                 
@@ -501,11 +515,28 @@ EOF
                 fi
                 break
             else
-                log "API request failed for URL: $api_url" "WARN"
+                log "API request failed for URL: $test_url" "WARN"
+            fi
+        else
+            log "API not yet available on port $api_port (attempt $retry_count)" "INFO"
+            
+            # Show debugging info on first and every 10th attempt
+            if [[ $retry_count -eq 1 || $(($retry_count % 10)) -eq 0 ]]; then
+                log "Current .NET processes:" "INFO"
+                ps aux | grep dotnet | grep -v grep | tee -a "$LOG_FILE"
+                
+                log "Current listening ports:" "INFO"
+                netstat -tulpn | grep LISTEN | grep ":$api_port" | tee -a "$LOG_FILE" || echo "Port $api_port not listening yet"
+                
+                # Check if Aspire logs have any errors
+                if [[ -f "$absolute_log_dir/aspire-output-$TIMESTAMP.log" ]]; then
+                    log "Recent Aspire log output:" "INFO"
+                    tail -20 "$absolute_log_dir/aspire-output-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+                fi
             fi
         fi
         
-        if [[ $retry_count -lt $max_retries ]]; then
+        if [[ $retry_count -lt $max_retries && "$test_success" != "true" ]]; then
             sleep 10
         fi
     done
