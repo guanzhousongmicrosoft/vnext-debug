@@ -10,7 +10,7 @@ TEST_SCENARIO=${2:-basic}
 LOG_DIR="logs"
 mkdir -p "$LOG_DIR"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-LOG_FILE="$LOG_DIR/cosmos-test-ubuntu-$TIMESTAMP.log"
+LOG_FILE="$(pwd)/$LOG_DIR/cosmos-test-ubuntu-$TIMESTAMP.log"
 
 log() {
     local level=${2:-INFO}
@@ -45,6 +45,10 @@ test_cosmos_emulator() {
     local container_lifetime=${1:-Session}
     
     log "Starting Cosmos DB Emulator test with lifetime: $container_lifetime" "INFO"
+    
+    # Store the original directory
+    local original_dir=$(pwd)
+    local absolute_log_dir="$original_dir/$LOG_DIR"
     
     # Create test Aspire project
     local test_project_dir="test-aspire-project"
@@ -395,7 +399,7 @@ EOF
     # Start the application in background
     log "Starting Aspire host..." "INFO"
     cd "$test_project_dir.AppHost"
-    dotnet run --verbosity normal > "$LOG_DIR/aspire-output-$TIMESTAMP.log" 2>&1 &
+    dotnet run --verbosity normal > "$absolute_log_dir/aspire-output-$TIMESTAMP.log" 2>&1 &
     local aspire_pid=$!
     cd ..
     
@@ -410,7 +414,7 @@ EOF
         # Check if process is still running
         if ! kill -0 $aspire_pid 2>/dev/null; then
             log "Aspire process died unexpectedly!" "ERROR"
-            cat "$LOG_DIR/aspire-output-$TIMESTAMP.log" >> "$LOG_FILE"
+            cat "$absolute_log_dir/aspire-output-$TIMESTAMP.log" >> "$LOG_FILE"
             return 1
         fi
     done
@@ -425,7 +429,7 @@ EOF
         if [[ -n "$cosmos_containers" ]]; then
             for container_name in $cosmos_containers; do
                 log "Collecting logs from Cosmos container: $container_name" "INFO"
-                sudo docker logs "$container_name" > "$LOG_DIR/cosmos-container-$container_name-$TIMESTAMP.log" 2>&1
+                sudo docker logs "$container_name" > "$absolute_log_dir/cosmos-container-$container_name-$TIMESTAMP.log" 2>&1
             done
         else
             log "No Cosmos emulator containers found!" "WARN"
@@ -459,7 +463,7 @@ EOF
         done
         
         if [[ -n "$api_url" ]]; then
-            local response_file="$LOG_DIR/api-response-$retry_count-$TIMESTAMP.json"
+            local response_file="$absolute_log_dir/api-response-$retry_count-$TIMESTAMP.json"
             
             if curl -f -s -m 30 "$api_url" -o "$response_file" 2>/dev/null; then
                 log "API test successful! Response saved to $response_file" "INFO"
@@ -501,9 +505,9 @@ EOF
         ps aux | grep dotnet | tee -a "$LOG_FILE"
         netstat -tulpn | grep LISTEN | tee -a "$LOG_FILE"
         
-        if [[ -f "$LOG_DIR/aspire-output-$TIMESTAMP.log" ]]; then
+        if [[ -f "$absolute_log_dir/aspire-output-$TIMESTAMP.log" ]]; then
             log "Aspire output tail:" "INFO"
-            tail -50 "$LOG_DIR/aspire-output-$TIMESTAMP.log" | tee -a "$LOG_FILE"
+            tail -50 "$absolute_log_dir/aspire-output-$TIMESTAMP.log" | tee -a "$LOG_FILE"
         fi
         
         return 1
