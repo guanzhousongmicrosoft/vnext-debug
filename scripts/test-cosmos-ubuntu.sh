@@ -26,9 +26,9 @@ cleanup() {
     
     # Stop and remove all containers
     if command -v docker &> /dev/null; then
-        docker stop $(docker ps -aq) 2>/dev/null || true
-        docker rm $(docker ps -aq) 2>/dev/null || true
-        docker system prune -f 2>/dev/null || true
+        sudo docker stop $(sudo docker ps -aq) 2>/dev/null || true
+        sudo docker rm $(sudo docker ps -aq) 2>/dev/null || true
+        sudo docker system prune -f 2>/dev/null || true
     fi
     
     # Remove test project
@@ -418,18 +418,18 @@ EOF
     # Check Docker containers
     log "Checking Docker containers..." "INFO"
     if command -v docker &> /dev/null; then
-        docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | tee -a "$LOG_FILE"
+        sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | tee -a "$LOG_FILE"
         
         # Collect Cosmos container logs
-        local cosmos_containers=$(docker ps --filter "ancestor=mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator" --format "{{.Names}}")
+        local cosmos_containers=$(sudo docker ps --filter "ancestor=mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator" --format "{{.Names}}")
         if [[ -n "$cosmos_containers" ]]; then
             for container_name in $cosmos_containers; do
                 log "Collecting logs from Cosmos container: $container_name" "INFO"
-                docker logs "$container_name" > "$LOG_DIR/cosmos-container-$container_name-$TIMESTAMP.log" 2>&1
+                sudo docker logs "$container_name" > "$LOG_DIR/cosmos-container-$container_name-$TIMESTAMP.log" 2>&1
             done
         else
             log "No Cosmos emulator containers found!" "WARN"
-            docker ps -a | tee -a "$LOG_FILE"
+            sudo docker ps -a | tee -a "$LOG_FILE"
         fi
     fi
     
@@ -514,7 +514,7 @@ EOF
 log "Starting Cosmos DB Emulator tests on Ubuntu" "INFO"
 log "Debug Level: $DEBUG_LEVEL, Test Scenario: $TEST_SCENARIO" "INFO"
 log "Environment: $(uname -a)" "INFO"
-log "Docker version: $(docker --version)" "INFO"
+log "Docker version: $(sudo docker --version)" "INFO"
 log ".NET version: $(dotnet --version)" "INFO"
 
 declare -A results

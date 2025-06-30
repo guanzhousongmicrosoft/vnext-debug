@@ -53,29 +53,29 @@ jobs:
         dotnet workload install aspire
         echo "Aspire workload installed successfully"
         
-    - name: Setup Docker
+    - name: Setup Docker permissions
       run: |
-        echo "Setting up Docker..."
-        sudo apt-get update
-        sudo apt-get install -y docker.io docker-compose
-        sudo systemctl start docker
-        sudo systemctl enable docker
+        echo "Setting up Docker permissions..."
         sudo usermod -aG docker $USER
+        # Restart Docker service to ensure it's running
+        sudo systemctl restart docker
+        # Add current user to docker group for this session
+        newgrp docker || true
         echo "Docker setup completed"
         
     - name: Check Docker availability
       run: |
         echo "Checking Docker availability..."
         docker --version
-        docker info
+        sudo docker info
         echo "Testing Docker functionality..."
-        docker run --rm hello-world
+        sudo docker run --rm hello-world
         echo "Docker is available and working correctly"
       
     - name: Pull Cosmos DB Emulator image
       run: |
         echo "Pre-pulling Cosmos DB emulator image..."
-        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+        sudo docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
         echo "Cosmos DB emulator image pulled successfully"
         
     - name: Run Ubuntu test
