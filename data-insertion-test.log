@@ -1,0 +1,230 @@
+🧪 Comprehensive Cosmos DB Test Suite
+=====================================
+[0;34mStep 1: Build Solution[0m
+[0;34mTesting: Build Solution[0m
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.77
+[0;32m✅ Build successful[0m
+
+[0;34mStep 2: Unit Tests[0m
+
+[0;34mTesting: Unit Tests[0m
+[1;33m⏳ Unit tests would run here (skipping complex integration for now)[0m
+[0;32m✅ Unit tests passed (placeholder)[0m
+
+[0;34mStep 3: Start Application[0m
+
+[0;34mStarting Application[0m
+[1;33mStarting Aspire AppHost in background...[0m
+[1;33mWaiting for Aspire to start Cosmos DB emulator and API...[0m
+Using launch settings from CosmosEmulatorApp.AppHost/Properties/launchSettings.json...
+Building...
+info: Aspire.Hosting.DistributedApplication[0]
+      Aspire version: 9.1.0+2a8f48ea5811f317a26405eb315aa315cc9e3cea
+info: Aspire.Hosting.DistributedApplication[0]
+      Distributed application starting.
+info: Aspire.Hosting.DistributedApplication[0]
+      Application host directory is: /home/song/vnext-debug/CosmosEmulatorApp.AppHost
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/song/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+info: Aspire.Hosting.Dcp.DcpHost[0]
+      Starting DCP with arguments: start-apiserver --monitor 5591 --detach --kubeconfig "/tmp/aspire.u6N8LV/kubeconfig"
+info: Aspire.Hosting.Dcp.dcp.start-apiserver.api-server[0]
+      Starting API server...
+info: Aspire.Hosting.Dcp.dcp.start-apiserver.api-server[0]
+      API server started	{"Address": "127.0.0.1", "Port": 38083}
+info: Aspire.Hosting.Dcp.dcp.start-apiserver.dcp-host[0]
+      Starting DCP controller host
+info: Aspire.Hosting.Dcp.dcp.start-apiserver.dcp-host[0]
+      Started all services	{"count": 1}
+info: Aspire.Hosting.Dcp.dcpctrl.ContainerOrchestrator[0]
+      runtime status	{"ContainerRuntime": "", "runtime": "podman", "status": {"Installed":false,"Running":false,"Error":"exec: \"podman\": executable file not found in $PATH\nfailed to start podman command 'Info'"}}
+info: Aspire.Hosting.Dcp.dcpctrl.ContainerOrchestrator[0]
+      runtime status	{"ContainerRuntime": "", "runtime": "docker", "status": {"Installed":true,"Running":true,"Error":""}}
+info: Aspire.Hosting.Dcp.dcpctrl.IdeExecutableRunner[0]
+      Executables cannot be started via IDE: missing required environment variable 'DEBUG_SESSION_PORT'
+info: Aspire.Hosting.Dcp.dcpctrl[0]
+      starting controller manager
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 4, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.DistributedApplication[0]
+      Now listening on: https://localhost:15888
+info: Aspire.Hosting.DistributedApplication[0]
+      Login to the dashboard at https://localhost:15888/login?t=623cf033cc55824dfdb59295188ad3a3
+info: Aspire.Hosting.Dcp.dcpctrl.ExecutableReconciler[0]
+      starting process...	{"Executable": {"name":"api-nmmyzumy"}, "Reconciliation": 2, "executable": "/usr/bin/dotnet"}
+info: Aspire.Hosting.Dcp.dcpctrl.ExecutableReconciler[0]
+      process started	{"Executable": {"name":"api-nmmyzumy"}, "Reconciliation": 2, "executable": "/usr/bin/dotnet", "PID": 7528}
+info: Aspire.Hosting.DistributedApplication[0]
+      Distributed application started. Press Ctrl+C to shut down.
+info: Aspire.Hosting.Dcp.dcpctrl.ExecutableReconciler[0]
+      starting process...	{"Executable": {"name":"aspire-dashboard-bmepwsrg"}, "Reconciliation": 5, "executable": "/home/song/.nuget/packages/aspire.dashboard.sdk.linux-x64/9.1.0/tools/Aspire.Dashboard"}
+info: Aspire.Hosting.Dcp.dcpctrl.ExecutableReconciler[0]
+      process started	{"Executable": {"name":"aspire-dashboard-bmepwsrg"}, "Reconciliation": 5, "executable": "/home/song/.nuget/packages/aspire.dashboard.sdk.linux-x64/9.1.0/tools/Aspire.Dashboard", "PID": 7550}
+info: Aspire.Hosting.Dcp.dcpctrl.NetworkReconciler[0]
+      network created	{"NetworkName": {"name":"default-aspire-network"}, "Reconciliation": 2, "Network": "default-aspire-network-uueokvhpos"}
+info: Aspire.Hosting.Dcp.dcpctrl.ContainerReconciler[0]
+      Added new ContainerNetworkConnection	{"Container": {"name":"cosmos-db-506a7062"}, "Reconciliation": 5, "Container": "1415906ada8502e71b375ea563b8c51d18bdf0e97d9c404a539960583c5f86ee", "ContainerNetworkConnection": "/cosmos-db-506a7062-default-aspire-network-5v254t68s8"}
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5190000Z Unhandled exception. System.IO.IOException: Failed to bind to address https://127.0.0.1:15888: address already in use.
+fail: Aspire.Hosting.Dashboard.Microsoft.Extensions.Hosting.Internal.Host[11]
+      Hosting failed to start
+      System.IO.IOException: Failed to bind to address https://127.0.0.1:15888: address already in use.
+       ---> Microsoft.AspNetCore.Connections.AddressInUseException: Address already in use
+       ---> System.Net.Sockets.SocketException (98): Address already in use
+         at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+         at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
+         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+         --- End of inner exception stack trace ---
+         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+         at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
+      --- End of stack trace from previous location ---
+         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+         --- End of inner exception stack trace ---
+         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.LocalhostListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.EndpointsStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
+         at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
+         at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)
+         at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z  ---> Microsoft.AspNetCore.Connections.AddressInUseException: Address already in use
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z  ---> System.Net.Sockets.SocketException (98): Address already in use
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    --- End of inner exception stack trace ---
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z --- End of stack trace from previous location ---
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    --- End of inner exception stack trace ---
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Core.LocalhostListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.EndpointsStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.RunAsync(IHost host, CancellationToken token)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Run(IHost host)
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Aspire.Dashboard.DashboardWebApplication.Run() in /_/src/Aspire.Dashboard/DashboardWebApplication.cs:line 822
+fail: Aspire.Hosting.Dashboard[0]
+      2025-07-01T14:52:42.5240000Z    at Program.<Main>$(String[] args) in /_/src/Aspire.Dashboard/Program.cs:line 7
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 6, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.NetworkReconciler[0]
+      connected a container to the network	{"NetworkName": {"name":"default-aspire-network"}, "Reconciliation": 4, "Container": "1415906ada8502e71b375ea563b8c51d18bdf0e97d9c404a539960583c5f86ee", "Network": "default-aspire-network-uueokvhpos"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 7, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      service /cosmos-db-data-explorer is now in state Ready	{"ServiceName": {"name":"cosmos-db-data-explorer"}, "Reconciliation": 8}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 10, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpproc.monitor[0]
+      monitor process exited, shutting down	{"pid": 7550}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 11, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpproc.monitor[0]
+      monitor process exited, shutting down	{"pid": 7528}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 12, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 13, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 14, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 15, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 16, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+[1;33mChecking if API is ready...[0m
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 17, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 18, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 19, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 20, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 21, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 22, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 23, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 24, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 25, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 26, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 27, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 28, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 29, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+[0;32m✅ API is ready![0m
+
+[0;34mStep 4: Find API URL[0m
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 30, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 31, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 32, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 33, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 34, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 35, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 36, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+fail: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not start the proxy	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 36, "error": "could not start the proxy for the service: listen tcp 127.0.0.1:8081: bind: address already in use"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not use the same port for all addresses associated with requested service address, service will be reachable only using specific IP address	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 37, "AttemptedCommonPort": 8081, "RequestedServiceAddress": "localhost"}
+fail: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      could not start the proxy	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 37, "error": "could not start the proxy for the service: listen tcp 127.0.0.1:8081: bind: address already in use"}

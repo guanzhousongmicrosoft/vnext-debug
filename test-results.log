@@ -1,0 +1,98 @@
+🧪 Comprehensive Cosmos DB Test Suite
+=====================================
+[0;34mStep 1: Build Solution[0m
+[0;34mTesting: Build Solution[0m
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:03.42
+[0;32m✅ Build successful[0m
+
+[0;34mStep 2: Unit Tests[0m
+
+[0;34mTesting: Unit Tests[0m
+[1;33m⏳ Unit tests would run here (skipping complex integration for now)[0m
+[0;32m✅ Unit tests passed (placeholder)[0m
+
+[0;34mStep 3: Start Application[0m
+
+[0;34mStarting Application[0m
+[1;33mStarting Aspire AppHost in background...[0m
+[1;33mWaiting for application to start...[0m
+Using launch settings from CosmosEmulatorApp.AppHost/Properties/launchSettings.json...
+Building...
+info: Aspire.Hosting.DistributedApplication[0]
+      Aspire version: 9.1.0+2a8f48ea5811f317a26405eb315aa315cc9e3cea
+info: Aspire.Hosting.DistributedApplication[0]
+      Distributed application starting.
+info: Aspire.Hosting.DistributedApplication[0]
+      Application host directory is: /home/song/vnext-debug/CosmosEmulatorApp.AppHost
+info: Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager[62]
+      User profile is available. Using '/home/song/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+info: Aspire.Hosting.Dcp.DcpHost[0]
+      Starting DCP with arguments: start-apiserver --monitor 75998 --detach --kubeconfig "/tmp/aspire.JGM33v/kubeconfig"
+info: Aspire.Hosting.Dcp.dcp.start-apiserver.api-server[0]
+      Starting API server...
+info: Aspire.Hosting.Dcp.dcp.start-apiserver.api-server[0]
+      API server started	{"Address": "127.0.0.1", "Port": 40645}
+info: Aspire.Hosting.Dcp.dcp.start-apiserver.dcp-host[0]
+      Starting DCP controller host
+info: Aspire.Hosting.Dcp.dcp.start-apiserver.dcp-host[0]
+      Started all services	{"count": 1}
+info: Aspire.Hosting.Dcp.dcpctrl.ContainerOrchestrator[0]
+      runtime status	{"ContainerRuntime": "", "runtime": "podman", "status": {"Installed":false,"Running":false,"Error":"exec: \"podman\": executable file not found in $PATH\nfailed to start podman command 'Info'"}}
+info: Aspire.Hosting.Dcp.dcpctrl.ContainerOrchestrator[0]
+      runtime status	{"ContainerRuntime": "", "runtime": "docker", "status": {"Installed":true,"Running":true,"Error":""}}
+info: Aspire.Hosting.Dcp.dcpctrl.IdeExecutableRunner[0]
+      Executables cannot be started via IDE: missing required environment variable 'DEBUG_SESSION_PORT'
+info: Aspire.Hosting.Dcp.dcpctrl[0]
+      starting controller manager
+info: Aspire.Hosting.DistributedApplication[0]
+      Now listening on: https://localhost:15888
+info: Aspire.Hosting.DistributedApplication[0]
+      Login to the dashboard at https://localhost:15888/login?t=8e1338fb3f80c1d9e97fbd5a0b8fed3c
+info: Aspire.Hosting.Dcp.dcpctrl.ExecutableReconciler[0]
+      starting process...	{"Executable": {"name":"api-frhkenws"}, "Reconciliation": 2, "executable": "/usr/bin/dotnet"}
+info: Aspire.Hosting.Dcp.dcpctrl.ExecutableReconciler[0]
+      process started	{"Executable": {"name":"api-frhkenws"}, "Reconciliation": 2, "executable": "/usr/bin/dotnet", "PID": 77488}
+info: Aspire.Hosting.DistributedApplication[0]
+      Distributed application started. Press Ctrl+C to shut down.
+info: Aspire.Hosting.Dcp.dcpctrl.ExecutableReconciler[0]
+      starting process...	{"Executable": {"name":"aspire-dashboard-egebegnb"}, "Reconciliation": 5, "executable": "/home/song/.nuget/packages/aspire.dashboard.sdk.linux-x64/9.1.0/tools/Aspire.Dashboard"}
+info: Aspire.Hosting.Dcp.dcpctrl.ExecutableReconciler[0]
+      process started	{"Executable": {"name":"aspire-dashboard-egebegnb"}, "Reconciliation": 5, "executable": "/home/song/.nuget/packages/aspire.dashboard.sdk.linux-x64/9.1.0/tools/Aspire.Dashboard", "PID": 77518}
+info: Aspire.Hosting.Dcp.dcpctrl.NetworkReconciler[0]
+      network created	{"NetworkName": {"name":"default-aspire-network"}, "Reconciliation": 2, "Network": "default-aspire-network-44rquitbuo"}
+info: Aspire.Hosting.Dcp.dcpctrl.ContainerReconciler[0]
+      Added new ContainerNetworkConnection	{"Container": {"name":"cosmos-db-506a7062"}, "Reconciliation": 5, "Container": "34a30e0d1337ca5bcf5a46e83998d174acb0683e458623bee804d0c3c35cbc6a", "ContainerNetworkConnection": "/cosmos-db-506a7062-default-aspire-network-cc9jl1a9mg"}
+info: Aspire.Hosting.Dcp.dcpctrl.NetworkReconciler[0]
+      connected a container to the network	{"NetworkName": {"name":"default-aspire-network"}, "Reconciliation": 4, "Container": "34a30e0d1337ca5bcf5a46e83998d174acb0683e458623bee804d0c3c35cbc6a", "Network": "default-aspire-network-44rquitbuo"}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      service /cosmos-db-emulator is now in state Ready	{"ServiceName": {"name":"cosmos-db-emulator"}, "Reconciliation": 7}
+info: Aspire.Hosting.Dcp.dcpctrl.ServiceReconciler[0]
+      service /cosmos-db-data-explorer is now in state Ready	{"ServiceName": {"name":"cosmos-db-data-explorer"}, "Reconciliation": 9}
+
+[0;34mStep 4: Find API URL[0m
+[0;31m❌ Could not find API URL[0m
+[1;33m💡 Check the application output above for the correct URL[0m
+[1;33m   The application may still be starting up[0m
+
+[0;34m🎯 Test Summary[0m
+================
+[0;32m✅ Build: Successful[0m
+[0;32m✅ Application: Started[0m
+[1;33m⚠️  API: Could not auto-detect URL[0m
+
+[0;34m💡 Access Points:[0m
+- API Documentation: /swagger (if API was found)
+- Health Check: /health
+- Aspire Dashboard: Check application startup output
+- Data Explorer: Available through Cosmos emulator container
+
+[1;33m⏱️  Application will continue running for manual testing...[0m
+[1;33m   Press Ctrl+C to stop[0m
+
+[1;33m🧹 Cleaning up (killing PID: 35)...[0m
+[0;32m✅ Cleanup complete[0m
