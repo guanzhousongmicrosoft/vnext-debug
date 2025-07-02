@@ -57,6 +57,10 @@ jobs:
     # Run Aspire application in background
     - name: Start Aspire with Cosmos DB Emulator
       run: |
+        # Set environment variable to increase verbosity
+        export ASPNETCORE_ENVIRONMENT=Development
+        export ASPIRE_LOGGING_LEVEL=Debug
+        
         # Start the application in the background
         dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj > aspire_output.log 2>&1 &
         ASPIRE_PID=$!
@@ -74,14 +78,39 @@ jobs:
         # Wait for the emulator to start
         sleep 60
         
-        # Show the latest log entries
-        echo "Last 20 lines of Aspire log:"
-        tail -n 20 aspire_output.log
+        # Check for Docker containers and get their status
+        echo "Docker container status:"
+        docker ps -a
         
-        # Run the test application
+        # Check Docker networks
+        echo "Docker networks:"
+        docker network ls
+        
+        # Check if port 8081 is being used
+        echo "Port 8081 usage:"
+        netstat -tuln | grep 8081 || echo "Port 8081 is not in use"
+        
+        # Show the latest log entries
+        echo "Last 50 lines of Aspire log:"
+        tail -n 50 aspire_output.log
+        
+        # Check if localhost resolves correctly
+        echo "Localhost resolution:"
+        ping -c 1 localhost || echo "Localhost ping failed"
+        
+        # Create logs directory
+        mkdir -p logs
+        
+        # Run the test application with additional debug info
         echo "Running test application to verify Cosmos DB emulator..."
-        dotnet run --project AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj
+        dotnet run --project AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj > logs/test_output.log 2>&1 || true
         TEST_RESULT=$?
+        
+        # Save more detailed logs
+        echo "Saving detailed logs..."
+        cp aspire_output.log logs/aspire_output.log
+        docker logs $(docker ps -q --filter "name=cosmos") > logs/cosmos_container.log 2>&1 || echo "No Cosmos container logs available"
+        docker inspect $(docker ps -q --filter "name=cosmos") > logs/cosmos_container_inspect.json 2>&1 || echo "No Cosmos container to inspect"
         
         # Kill the Aspire application
         if ps -p $ASPIRE_PID > /dev/null; then
@@ -93,4 +122,13 @@ jobs:
         mv AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak AspireCosmosSimple/AspireCosmosSimple/Program.cs
         
         # Return the test result
+        cat logs/test_output.log
         exit $TEST_RESULT
+    
+    # Upload logs as artifacts
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: debug-logs
+        path: logs/
