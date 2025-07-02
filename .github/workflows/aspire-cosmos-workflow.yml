@@ -41,13 +41,16 @@ jobs:
     # Run Aspire application in background
     - name: Start Aspire with Cosmos DB Emulator
       run: |
-        # Start the application in the background
-        dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj &
+        # Create a temporary script to handle non-interactive console
+        cat > run_aspire.sh << 'EOF'
+        #!/bin/bash
+        # Start the application and redirect input to prevent waiting for key press
+        dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj < <(echo -e "\n") &
         # Store the process ID
         ASPIRE_PID=$!
         # Wait for emulator to start
         echo "Waiting for Cosmos DB emulator to start..."
-        sleep 30
+        sleep 60  # Increase wait time to ensure emulator is fully started
         
         # Run the test application
         echo "Running test application to verify Cosmos DB emulator..."
@@ -59,3 +62,10 @@ jobs:
         
         # Return the test result
         exit $TEST_RESULT
+        EOF
+        
+        # Make the script executable
+        chmod +x run_aspire.sh
+        
+        # Run the script
+        ./run_aspire.sh
