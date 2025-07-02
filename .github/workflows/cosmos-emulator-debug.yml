@@ -17,6 +17,10 @@ jobs:
       with:
         dotnet-version: '9.0.x'
         
+    - name: Install Aspire workload
+      run: |
+        dotnet workload install aspire
+        
     - name: Create test app
       run: |
         # Create global usings
