@@ -24,7 +24,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgconf-2-4 libunwind8 libssl1.1
+        sudo apt-get install -y libunwind8 libcurl4 openssl
 
     # Restore dependencies for both projects
     - name: Restore dependencies
