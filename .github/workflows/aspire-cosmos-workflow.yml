@@ -29,20 +29,20 @@ jobs:
     # Restore dependencies for both projects
     - name: Restore dependencies
       run: |
-        dotnet restore AspireCosmosSimple/AspireCosmosSimple.csproj
-        dotnet restore CosmosDBTest/CosmosDBTest.csproj
+        dotnet restore AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj
+        dotnet restore AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj
     
     # Build both projects
     - name: Build
       run: |
-        dotnet build AspireCosmosSimple/AspireCosmosSimple.csproj --no-restore
-        dotnet build CosmosDBTest/CosmosDBTest.csproj --no-restore
+        dotnet build AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj --no-restore
+        dotnet build AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj --no-restore
     
     # Run Aspire application in background
     - name: Start Aspire with Cosmos DB Emulator
       run: |
         # Start the application in the background
-        dotnet run --project AspireCosmosSimple/AspireCosmosSimple.csproj &
+        dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj &
         # Store the process ID
         ASPIRE_PID=$!
         # Wait for emulator to start
@@ -51,7 +51,7 @@ jobs:
         
         # Run the test application
         echo "Running test application to verify Cosmos DB emulator..."
-        dotnet run --project CosmosDBTest/CosmosDBTest.csproj
+        dotnet run --project AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj
         TEST_RESULT=$?
         
         # Kill the Aspire application
