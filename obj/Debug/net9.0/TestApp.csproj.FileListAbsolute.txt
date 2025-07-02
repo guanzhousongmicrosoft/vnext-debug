@@ -1,0 +1,6 @@
+/home/song/vnext-debug/obj/Debug/net9.0/TestApp.csproj.AssemblyReference.cache
+/home/song/vnext-debug/obj/Debug/net9.0/TestApp.GeneratedMSBuildEditorConfig.editorconfig
+/home/song/vnext-debug/obj/Debug/net9.0/TestApp.AssemblyInfoInputs.cache
+/home/song/vnext-debug/obj/Debug/net9.0/TestApp.AssemblyInfo.cs
+/home/song/vnext-debug/obj/Debug/net9.0/TestApp.csproj.CoreCompileInputs.cache
+/home/song/vnext-debug/obj/Debug/net9.0/TestApp.sourcelink.json

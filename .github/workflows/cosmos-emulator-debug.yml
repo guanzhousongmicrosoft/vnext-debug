@@ -19,29 +19,45 @@ jobs:
         
     - name: Create test app
       run: |
+        # Create global usings
+        cat > GlobalUsings.cs << 'EOF'
+        global using System;
+        global using System.Threading.Tasks;
+        global using Aspire.Hosting;
+        global using Aspire.Hosting.ApplicationModel;
+        EOF
+
         # Create the minimal test that reproduces the issue
-        cat > TestApp.cs << 'EOF'
+        cat > Program.cs << 'EOF'
         #pragma warning disable ASPIRECOSMOSDB001
-        using Aspire.Hosting;
-        using Aspire.Hosting.Testing;
 
-        var builder = DistributedApplicationTestingBuilder.CreateAsync<Program>().GetAwaiter().GetResult();
-        
-        builder.Services.ConfigureHttpClientDefaults(clientBuilder =>
-        {
-            clientBuilder.AddStandardResilienceHandler();
-        });
+        // Create the AppHost builder directly - simpler approach
+        var builder = DistributedApplication.CreateBuilder(args);
 
-        var app = builder.BuildAsync().GetAwaiter().GetResult();
+        Console.WriteLine("Setting up Cosmos DB...");
+
+        var cosmos = builder
+            .AddAzureCosmosDB("database")
+            .RunAsPreviewEmulator(options =>
+            {
+                options.WithLifetime(ContainerLifetime.Persistent);
+            });
+
+        var database = cosmos.AddCosmosDatabase("MyDb");
+        var container = database.AddContainer("Users", "/emailAddress");
+
+        Console.WriteLine("Building app...");
+        var app = builder.Build();
 
         try
         {
             Console.WriteLine("Starting the application...");
-            app.StartAsync().GetAwaiter().GetResult();
+            await app.StartAsync();
             
             Console.WriteLine("App started successfully! Waiting 30 seconds...");
             await Task.Delay(30000);
             
+            Console.WriteLine("Stopping app...");
             await app.StopAsync();
             Console.WriteLine("Test completed successfully");
         }
@@ -52,27 +68,9 @@ jobs:
             {
                 Console.WriteLine("REPRODUCED: Found the cosmos_api schema error!");
             }
+            
+            try { await app.StopAsync(); } catch { }
             throw;
-        }
-
-        public class Program 
-        {
-            public static void Main(string[] args)
-            {
-                var builder = DistributedApplication.CreateBuilder(args);
-
-                var cosmos = builder
-                    .AddAzureCosmosDB("database")
-                    .RunAsPreviewEmulator(options =>
-                    {
-                        options.WithLifetime(ContainerLifetime.Persistent);
-                    });
-
-                var database = cosmos.AddCosmosDatabase("MyDb");
-                var container = database.AddContainer("Users", "/emailAddress");
-
-                builder.Build().Run();
-            }
         }
         EOF
 
@@ -87,8 +85,6 @@ jobs:
           </PropertyGroup>
           <ItemGroup>
             <PackageReference Include="Aspire.Hosting.Azure.CosmosDB" Version="9.*" />
-            <PackageReference Include="Aspire.Hosting.Testing" Version="9.*" />
-            <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.*" />
           </ItemGroup>
         </Project>
         EOF
