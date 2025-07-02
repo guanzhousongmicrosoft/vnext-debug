@@ -44,23 +44,50 @@ jobs:
         # Create a temporary script to handle non-interactive console
         cat > run_aspire.sh << 'EOF'
         #!/bin/bash
-        # Start the application and redirect input to prevent waiting for key press
-        dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj < <(echo -e "\n") &
-        # Store the process ID
+        # Set ASPNETCORE_ENVIRONMENT to Development to ensure proper emulator setup
+        export ASPNETCORE_ENVIRONMENT=Development
+        
+        # Run in background and redirect both stdin and stdout
+        dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj > aspire_output.log 2>&1 &
         ASPIRE_PID=$!
-        # Wait for emulator to start
-        echo "Waiting for Cosmos DB emulator to start..."
-        sleep 60  # Increase wait time to ensure emulator is fully started
+        
+        # Verify the process is running
+        if ! ps -p $ASPIRE_PID > /dev/null; then
+          echo "Failed to start Aspire application"
+          exit 1
+        fi
+        
+        echo "Aspire application started with PID: $ASPIRE_PID"
+        echo "Waiting for Cosmos DB emulator to initialize..."
+        
+        # Wait for the application to start and initialize the emulator (longer wait time)
+        sleep 120
+        
+        # Check if the application is still running
+        if ! ps -p $ASPIRE_PID > /dev/null; then
+          echo "Aspire application terminated unexpectedly"
+          cat aspire_output.log
+          exit 1
+        fi
+        
+        # Show the latest log entries
+        echo "Last 20 lines of Aspire log:"
+        tail -n 20 aspire_output.log
         
         # Run the test application
         echo "Running test application to verify Cosmos DB emulator..."
         dotnet run --project AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj
         TEST_RESULT=$?
         
-        # Kill the Aspire application
-        kill $ASPIRE_PID
+        # Kill the Aspire application and clean up
+        if ps -p $ASPIRE_PID > /dev/null; then
+          echo "Stopping Aspire application..."
+          kill $ASPIRE_PID
+          wait $ASPIRE_PID 2>/dev/null || true
+        fi
         
         # Return the test result
+        echo "Test completed with result: $TEST_RESULT"
         exit $TEST_RESULT
         EOF
         
