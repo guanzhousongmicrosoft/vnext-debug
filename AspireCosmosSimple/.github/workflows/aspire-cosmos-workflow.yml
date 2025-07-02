@@ -1,0 +1,61 @@
+name: Aspire Cosmos DB Workflow
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Setup .NET SDK
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x' # Use the appropriate version
+
+    # Install required dependencies for Cosmos DB Emulator on Linux
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgconf-2-4 libunwind8 libssl1.1
+
+    # Restore dependencies for both projects
+    - name: Restore dependencies
+      run: |
+        dotnet restore AspireCosmosSimple/AspireCosmosSimple.csproj
+        dotnet restore CosmosDBTest/CosmosDBTest.csproj
+    
+    # Build both projects
+    - name: Build
+      run: |
+        dotnet build AspireCosmosSimple/AspireCosmosSimple.csproj --no-restore
+        dotnet build CosmosDBTest/CosmosDBTest.csproj --no-restore
+    
+    # Run Aspire application in background
+    - name: Start Aspire with Cosmos DB Emulator
+      run: |
+        # Start the application in the background
+        dotnet run --project AspireCosmosSimple/AspireCosmosSimple.csproj &
+        # Store the process ID
+        ASPIRE_PID=$!
+        # Wait for emulator to start
+        echo "Waiting for Cosmos DB emulator to start..."
+        sleep 30
+        
+        # Run the test application
+        echo "Running test application to verify Cosmos DB emulator..."
+        dotnet run --project CosmosDBTest/CosmosDBTest.csproj
+        TEST_RESULT=$?
+        
+        # Kill the Aspire application
+        kill $ASPIRE_PID
+        
+        # Return the test result
+        exit $TEST_RESULT
