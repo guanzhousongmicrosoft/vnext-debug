@@ -1,0 +1,109 @@
+name: Reproduce Cosmos DB Issue
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  reproduce-issue:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Create test app
+      run: |
+        # Create the minimal test that reproduces the issue
+        cat > TestApp.cs << 'EOF'
+        #pragma warning disable ASPIRECOSMOSDB001
+        using Aspire.Hosting;
+        using Aspire.Hosting.Testing;
+
+        var builder = DistributedApplicationTestingBuilder.CreateAsync<Program>().GetAwaiter().GetResult();
+        
+        builder.Services.ConfigureHttpClientDefaults(clientBuilder =>
+        {
+            clientBuilder.AddStandardResilienceHandler();
+        });
+
+        var app = builder.BuildAsync().GetAwaiter().GetResult();
+
+        try
+        {
+            Console.WriteLine("Starting the application...");
+            app.StartAsync().GetAwaiter().GetResult();
+            
+            Console.WriteLine("App started successfully! Waiting 30 seconds...");
+            await Task.Delay(30000);
+            
+            await app.StopAsync();
+            Console.WriteLine("Test completed successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            if (ex.Message.Contains("cosmos_api"))
+            {
+                Console.WriteLine("REPRODUCED: Found the cosmos_api schema error!");
+            }
+            throw;
+        }
+
+        public class Program 
+        {
+            public static void Main(string[] args)
+            {
+                var builder = DistributedApplication.CreateBuilder(args);
+
+                var cosmos = builder
+                    .AddAzureCosmosDB("database")
+                    .RunAsPreviewEmulator(options =>
+                    {
+                        options.WithLifetime(ContainerLifetime.Persistent);
+                    });
+
+                var database = cosmos.AddCosmosDatabase("MyDb");
+                var container = database.AddContainer("Users", "/emailAddress");
+
+                builder.Build().Run();
+            }
+        }
+        EOF
+
+    - name: Create project file
+      run: |
+        cat > TestApp.csproj << 'EOF'
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>Exe</OutputType>
+            <TargetFramework>net9.0</TargetFramework>
+            <Nullable>enable</Nullable>
+          </PropertyGroup>
+          <ItemGroup>
+            <PackageReference Include="Aspire.Hosting.Azure.CosmosDB" Version="9.*" />
+            <PackageReference Include="Aspire.Hosting.Testing" Version="9.*" />
+            <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.*" />
+          </ItemGroup>
+        </Project>
+        EOF
+
+    - name: Run test
+      run: |
+        dotnet run --project TestApp.csproj
+        
+    - name: Show container logs if failed
+      if: failure()
+      run: |
+        echo "=== Docker containers ==="
+        docker ps -a
+        echo "=== Container logs ==="
+        for container in $(docker ps -a --format "{{.Names}}" | grep -i cosmos); do
+          echo "--- Logs for $container ---"
+          docker logs "$container" 2>&1 | tail -50
+        done
