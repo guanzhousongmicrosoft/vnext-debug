@@ -23,6 +23,10 @@ jobs:
         
     - name: Create test app
       run: |
+        # Create isolated test directory
+        mkdir cosmos-test
+        cd cosmos-test
+        
         # Create global usings
         cat > GlobalUsings.cs << 'EOF'
         global using System;
@@ -80,6 +84,7 @@ jobs:
 
     - name: Create project file
       run: |
+        cd cosmos-test
         cat > TestApp.csproj << 'EOF'
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
@@ -95,6 +100,7 @@ jobs:
 
     - name: Run test
       run: |
+        cd cosmos-test
         dotnet run --project TestApp.csproj
         
     - name: Show container logs if failed
