@@ -38,37 +38,41 @@ jobs:
         dotnet build AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj --no-restore
         dotnet build AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj --no-restore
     
+    # Modify Program.cs to run in CI environment
+    - name: Prepare Aspire for CI environment
+      run: |
+        # Create a backup of the original file
+        cp AspireCosmosSimple/AspireCosmosSimple/Program.cs AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak
+        
+        # Replace Console.ReadKey with a sleep timer for CI environment
+        sed -i 's/Console.ReadKey();/Thread.Sleep(60000); \/\/ Sleep for 60 seconds instead of waiting for key press in CI environment/' AspireCosmosSimple/AspireCosmosSimple/Program.cs
+        
+        # Add using statement for Thread if not already present
+        sed -i '1s/^/using System.Threading;\n/' AspireCosmosSimple/AspireCosmosSimple/Program.cs
+        
+        # Show the changes
+        echo "Modified Program.cs for CI environment:"
+        cat AspireCosmosSimple/AspireCosmosSimple/Program.cs
+    
     # Run Aspire application in background
     - name: Start Aspire with Cosmos DB Emulator
       run: |
-        # Create a temporary script to handle non-interactive console
-        cat > run_aspire.sh << 'EOF'
-        #!/bin/bash
-        # Set ASPNETCORE_ENVIRONMENT to Development to ensure proper emulator setup
-        export ASPNETCORE_ENVIRONMENT=Development
-        
-        # Run in background and redirect both stdin and stdout
+        # Start the application in the background
         dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj > aspire_output.log 2>&1 &
         ASPIRE_PID=$!
         
         # Verify the process is running
         if ! ps -p $ASPIRE_PID > /dev/null; then
           echo "Failed to start Aspire application"
+          cat aspire_output.log
           exit 1
         fi
         
         echo "Aspire application started with PID: $ASPIRE_PID"
         echo "Waiting for Cosmos DB emulator to initialize..."
         
-        # Wait for the application to start and initialize the emulator (longer wait time)
-        sleep 120
-        
-        # Check if the application is still running
-        if ! ps -p $ASPIRE_PID > /dev/null; then
-          echo "Aspire application terminated unexpectedly"
-          cat aspire_output.log
-          exit 1
-        fi
+        # Wait for the emulator to start
+        sleep 60
         
         # Show the latest log entries
         echo "Last 20 lines of Aspire log:"
@@ -79,20 +83,14 @@ jobs:
         dotnet run --project AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj
         TEST_RESULT=$?
         
-        # Kill the Aspire application and clean up
+        # Kill the Aspire application
         if ps -p $ASPIRE_PID > /dev/null; then
           echo "Stopping Aspire application..."
           kill $ASPIRE_PID
-          wait $ASPIRE_PID 2>/dev/null || true
         fi
         
+        # Restore the original Program.cs
+        mv AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak AspireCosmosSimple/AspireCosmosSimple/Program.cs
+        
         # Return the test result
-        echo "Test completed with result: $TEST_RESULT"
         exit $TEST_RESULT
-        EOF
-        
-        # Make the script executable
-        chmod +x run_aspire.sh
-        
-        # Run the script
-        ./run_aspire.sh
