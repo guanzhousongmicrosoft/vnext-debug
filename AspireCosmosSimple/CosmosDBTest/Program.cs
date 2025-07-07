@@ -33,7 +33,9 @@ namespace CosmosDBTest
                     };
                     return new HttpClient(httpClientHandler);
                 },
-                ConnectionMode = ConnectionMode.Gateway
+                ConnectionMode = ConnectionMode.Gateway,
+                RequestTimeout = TimeSpan.FromSeconds(30),
+                OpenTcpConnectionTimeout = TimeSpan.FromSeconds(30)
             };
 
             CosmosClient cosmosClient = new CosmosClient(EndpointUri, PrimaryKey, clientOptions);
@@ -42,9 +44,80 @@ namespace CosmosDBTest
             {
                 Console.WriteLine("Beginning Cosmos DB emulator test...");
                 
+                // Wait for emulator to be ready with retries
+                const int maxRetries = 10;
+                int retryCount = 0;
+                Exception lastException = null;
+                
+                while (retryCount < maxRetries)
+                {
+                    try
+                    {
+                        Console.WriteLine($"Attempt {retryCount + 1} of {maxRetries}: Connecting to Cosmos DB emulator...");
+                                  // Try to get the account properties as a connection test
+                var accountProperties = await cosmosClient.ReadAccountAsync();
+                Console.WriteLine($"Successfully connected to Cosmos DB emulator!");
+                Console.WriteLine($"Account endpoint: {accountProperties.Id}");
+                break;
+                    }
+                    catch (Exception ex)
+                    {
+                        lastException = ex;
+                        retryCount++;
+                        
+                        if (retryCount < maxRetries)
+                        {
+                            Console.WriteLine($"Connection attempt {retryCount} failed: {ex.Message}");
+                            Console.WriteLine($"Waiting 5 seconds before retry...");
+                            await Task.Delay(5000);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"All {maxRetries} connection attempts failed. Last error: {ex.Message}");
+                            throw;
+                        }
+                    }
+                }
+                
                 // Get references to our database and container
-                Database database = cosmosClient.GetDatabase(DatabaseId);
-                Container container = database.GetContainer(ContainerId);
+                Database database;
+                Container container;
+                
+                try
+                {
+                    // Try to get the database
+                    database = cosmosClient.GetDatabase(DatabaseId);
+                    
+                    // Check if database exists by trying to read it
+                    var databaseResponse = await database.ReadAsync();
+                    Console.WriteLine($"Database '{DatabaseId}' exists");
+                }
+                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // Database doesn't exist, create it
+                    Console.WriteLine($"Database '{DatabaseId}' does not exist, creating it...");
+                    var databaseResponse = await cosmosClient.CreateDatabaseAsync(DatabaseId);
+                    database = databaseResponse.Database;
+                    Console.WriteLine($"Database '{DatabaseId}' created");
+                }
+                
+                try
+                {
+                    // Try to get the container
+                    container = database.GetContainer(ContainerId);
+                    
+                    // Check if container exists by trying to read it
+                    var containerResponse = await container.ReadContainerAsync();
+                    Console.WriteLine($"Container '{ContainerId}' exists");
+                }
+                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // Container doesn't exist, create it
+                    Console.WriteLine($"Container '{ContainerId}' does not exist, creating it...");
+                    var containerResponse = await database.CreateContainerAsync(ContainerId, "/emailAddress");
+                    container = containerResponse.Container;
+                    Console.WriteLine($"Container '{ContainerId}' created");
+                }
                 
                 // Create a new user
                 User newUser = new User
@@ -80,11 +153,52 @@ namespace CosmosDBTest
             catch (CosmosException cosmosException)
             {
                 Console.WriteLine($"Cosmos DB operation failed. Status code: {cosmosException.StatusCode}, Error: {cosmosException.Message}");
+                Console.WriteLine($"Activity ID: {cosmosException.ActivityId}");
+                Console.WriteLine($"Request charge: {cosmosException.RequestCharge}");
+                
+                // Additional diagnostic information
+                Console.WriteLine("=== Diagnostic Information ===");
+                Console.WriteLine($"Endpoint: {EndpointUri}");
+                Console.WriteLine($"Database ID: {DatabaseId}");
+                Console.WriteLine($"Container ID: {ContainerId}");
+                
+                throw;
+            }
+            catch (HttpRequestException httpEx)
+            {
+                Console.WriteLine($"HTTP request failed: {httpEx.Message}");
+                Console.WriteLine($"Data: {httpEx.Data}");
+                
+                // Additional diagnostic information
+                Console.WriteLine("=== Diagnostic Information ===");
+                Console.WriteLine($"Endpoint: {EndpointUri}");
+                Console.WriteLine($"Database ID: {DatabaseId}");
+                Console.WriteLine($"Container ID: {ContainerId}");
+                
+                // Check if it's a connection issue
+                if (httpEx.Message.Contains("Connection refused"))
+                {
+                    Console.WriteLine("This appears to be a connection issue. Possible causes:");
+                    Console.WriteLine("1. Cosmos DB emulator is not running");
+                    Console.WriteLine("2. Port 8081 is not accessible");
+                    Console.WriteLine("3. SSL certificate validation is failing");
+                    Console.WriteLine("4. Network connectivity issue");
+                }
+                
                 throw;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"Exception type: {ex.GetType().Name}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                // Additional diagnostic information
+                Console.WriteLine("=== Diagnostic Information ===");
+                Console.WriteLine($"Endpoint: {EndpointUri}");
+                Console.WriteLine($"Database ID: {DatabaseId}");
+                Console.WriteLine($"Container ID: {ContainerId}");
+                
                 throw;
             }
             finally

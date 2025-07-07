@@ -14,6 +14,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    # Create scripts directory for health check script
+    - name: Create scripts directory
+      run: mkdir -p scripts
+    
     # Setup .NET SDK
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -24,7 +28,25 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libunwind8 libcurl4 openssl
+        sudo apt-get install -y libunwind8 libcurl4 openssl net-tools
+
+    # Setup Docker (in case it's not properly set up)
+    - name: Setup Docker
+      run: |
+        # Make sure Docker is running
+        sudo systemctl start docker
+        sudo systemctl enable docker
+        
+        # Add current user to docker group
+        sudo usermod -aG docker $USER
+        
+        # Check Docker status
+        docker --version
+        docker ps
+        
+        # Pre-pull the Cosmos DB emulator image
+        echo "Pre-pulling Cosmos DB emulator image..."
+        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest || echo "Failed to pull emulator image"
 
     # Restore dependencies for both projects
     - name: Restore dependencies
@@ -61,6 +83,9 @@ jobs:
         export ASPNETCORE_ENVIRONMENT=Development
         export ASPIRE_LOGGING_LEVEL=Debug
         
+        # Make the health check script executable
+        chmod +x scripts/wait-for-cosmos.sh
+        
         # Start the application in the background
         dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj > aspire_output.log 2>&1 &
         ASPIRE_PID=$!
@@ -75,54 +100,94 @@ jobs:
         echo "Aspire application started with PID: $ASPIRE_PID"
         echo "Waiting for Cosmos DB emulator to initialize..."
         
-        # Wait for the emulator to start
-        sleep 60
+        # Wait for initial startup
+        sleep 30
         
-        # Check for Docker containers and get their status
+        # Show initial Docker status
         echo "Docker container status:"
         docker ps -a
         
-        # Check Docker networks
+        # Run health check script
+        ./scripts/wait-for-cosmos.sh
+        HEALTH_CHECK_RESULT=$?
+        
+        if [ $HEALTH_CHECK_RESULT -ne 0 ]; then
+          echo "Cosmos DB emulator health check failed"
+          echo "Aspire logs:"
+          cat aspire_output.log
+          
+          # Kill the Aspire application
+          if ps -p $ASPIRE_PID > /dev/null; then
+            kill $ASPIRE_PID
+          fi
+          
+          # Restore the original Program.cs
+          mv AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak AspireCosmosSimple/AspireCosmosSimple/Program.cs
+          
+          exit 1
+        fi
+        
+        echo "Cosmos DB emulator is ready!"
+        
+        # Debug environment before running test
+        echo "=== Environment Debug Information ==="
+        echo "System information:"
+        uname -a
+        echo "Docker version:"
+        docker --version
+        echo "Docker info:"
+        docker info
+        echo "Network interfaces:"
+        ip addr show
+        echo "Listening ports:"
+        netstat -tuln
         echo "Docker networks:"
         docker network ls
-        
-        # Check if port 8081 is being used
-        echo "Port 8081 usage:"
-        netstat -tuln | grep 8081 || echo "Port 8081 is not in use"
-        
-        # Show the latest log entries
-        echo "Last 50 lines of Aspire log:"
-        tail -n 50 aspire_output.log
-        
-        # Check if localhost resolves correctly
-        echo "Localhost resolution:"
-        ping -c 1 localhost || echo "Localhost ping failed"
+        echo "Docker containers:"
+        docker ps -a
+        echo "Environment variables:"
+        env | grep -E "(ASPIRE|COSMOS|AZURE)" || echo "No Aspire/Cosmos environment variables set"
         
         # Create logs directory
         mkdir -p logs
         
-        # Run the test application with additional debug info
+        # Save logs before running test
+        echo "Saving logs before test..."
+        cp aspire_output.log logs/aspire_output_before_test.log
+        COSMOS_CONTAINER_ID=$(docker ps -q | head -1)
+        if [ -n "$COSMOS_CONTAINER_ID" ]; then
+          docker logs $COSMOS_CONTAINER_ID > logs/cosmos_container_before_test.log 2>&1 || echo "Failed to get container logs"
+        fi
+        
+        # Run the test application
         echo "Running test application to verify Cosmos DB emulator..."
         dotnet run --project AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj > logs/test_output.log 2>&1 || true
         TEST_RESULT=$?
         
-        # Save more detailed logs
-        echo "Saving detailed logs..."
+        # Save more detailed logs after test
+        echo "Saving detailed logs after test..."
         cp aspire_output.log logs/aspire_output.log
-        docker logs $(docker ps -q --filter "name=cosmos") > logs/cosmos_container.log 2>&1 || echo "No Cosmos container logs available"
-        docker inspect $(docker ps -q --filter "name=cosmos") > logs/cosmos_container_inspect.json 2>&1 || echo "No Cosmos container to inspect"
+        if [ -n "$COSMOS_CONTAINER_ID" ]; then
+          docker logs $COSMOS_CONTAINER_ID > logs/cosmos_container.log 2>&1 || echo "Failed to get container logs"
+          docker inspect $COSMOS_CONTAINER_ID > logs/cosmos_container_inspect.json 2>&1 || echo "Failed to inspect container"
+        fi
         
         # Kill the Aspire application
         if ps -p $ASPIRE_PID > /dev/null; then
           echo "Stopping Aspire application..."
           kill $ASPIRE_PID
+          # Wait a bit for cleanup
+          sleep 5
         fi
         
         # Restore the original Program.cs
         mv AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak AspireCosmosSimple/AspireCosmosSimple/Program.cs
         
-        # Return the test result
+        # Show test result
+        echo "Test output:"
         cat logs/test_output.log
+        
+        # Exit with test result
         exit $TEST_RESULT
     
     # Upload logs as artifacts
