@@ -12,7 +12,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Add Azure Cosmos DB resource and configure it to run as a preview emulator
 var cosmos = builder
     .AddAzureCosmosDB("database")
-    .RunAsPreviewEmulator(emulator => emulator.WithGatewayPort(7777));
+    .RunAsPreviewEmulator(emulator => emulator
+        .WithGatewayPort(7777)
+        .WithDataApiPort(7777));
 
 // Add a database and container to the Cosmos DB resource
 var database = cosmos.AddCosmosDatabase("MyDb");

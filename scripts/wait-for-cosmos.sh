@@ -47,16 +47,10 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
                 echo "Port 7777 not responding yet"
             fi
             
-            # Also check if port 8081 is accessible inside container
+            # Also check if port 8081 is accessible inside container (for diagnostics)
             echo "Testing connection inside container on port 8081..."
             if docker exec $CONTAINER_ID curl -k -s --max-time 5 https://localhost:8081/_explorer/emulator.pem > /dev/null 2>&1; then
                 echo "Cosmos DB emulator is responding inside container on port 8081!"
-                
-                # Check if we can access via the mapped port
-                if curl -s --max-time 5 http://localhost:7777/ > /dev/null 2>&1; then
-                    echo "Cosmos DB emulator is accessible on host port 7777!"
-                    exit 0
-                fi
             else
                 echo "Emulator not ready inside container yet"
                 # Get some logs to help diagnose
