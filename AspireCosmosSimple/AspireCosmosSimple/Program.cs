@@ -13,8 +13,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cosmos = builder
     .AddAzureCosmosDB("database")
     .RunAsPreviewEmulator(emulator => emulator
-        .WithGatewayPort(7777)
-        .WithDataApiPort(7777));
+        .WithGatewayPort(7777));
 
 // Add a database and container to the Cosmos DB resource
 var database = cosmos.AddCosmosDatabase("MyDb");
