@@ -14,7 +14,7 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
     echo "Attempt $ATTEMPT of $MAX_ATTEMPTS: Checking Cosmos DB emulator..."
     
     # Find the cosmos container
-    CONTAINER_ID=$(docker ps -q --filter "ancestor=mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest" 2>/dev/null || echo "")
+    CONTAINER_ID=$(docker ps -q --filter "ancestor=mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview" 2>/dev/null || echo "")
     
     if [ -z "$CONTAINER_ID" ]; then
         # Try to find any running container that might be the emulator
@@ -38,53 +38,24 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
         echo "Container status: $CONTAINER_STATUS"
         
         if [ "$CONTAINER_STATUS" = "running" ]; then
-            # Check if port 8081 is mapped
-            PORT_MAPPING=$(docker port $CONTAINER_ID 8081 2>/dev/null || echo "")
-            echo "Port 8081 mapping: $PORT_MAPPING"
+            # Check if port 7777 is mapped or accessible
+            echo "Testing connection to Cosmos DB emulator on host port 7777..."
+            if curl -s --max-time 5 http://localhost:7777/ > /dev/null 2>&1; then
+                echo "Cosmos DB emulator is accessible on host port 7777!"
+                exit 0
+            else
+                echo "Port 7777 not responding yet"
+            fi
             
-            # Check container health if available
-            HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' $CONTAINER_ID 2>/dev/null || echo "no health check")
-            echo "Container health: $HEALTH_STATUS"
-            
-            # Try to connect to the emulator endpoint inside the container
-            echo "Testing connection inside container..."
+            # Also check if port 8081 is accessible inside container
+            echo "Testing connection inside container on port 8081..."
             if docker exec $CONTAINER_ID curl -k -s --max-time 5 https://localhost:8081/_explorer/emulator.pem > /dev/null 2>&1; then
-                echo "Cosmos DB emulator is responding inside container!"
+                echo "Cosmos DB emulator is responding inside container on port 8081!"
                 
-                # Also check if accessible from host
-                echo "Testing connection from host..."
-                if curl -k -s --max-time 5 https://localhost:8081/_explorer/emulator.pem > /dev/null 2>&1; then
-                    echo "Cosmos DB emulator is accessible from host!"
-                    
-                    # Final verification - try to connect to the actual service
-                    echo "Testing Cosmos DB service endpoint..."
-                    if curl -k -s --max-time 5 https://localhost:8081/ > /dev/null 2>&1; then
-                        echo "Cosmos DB service endpoint is responding!"
-                        exit 0
-                    else
-                        echo "Cosmos DB service endpoint not responding yet"
-                    fi
-                else
-                    echo "Emulator ready in container but not accessible from host"
-                    echo "Checking port forwarding..."
-                    
-                    # Try to get the container's IP and connect directly
-                    HOST_IP=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $CONTAINER_ID 2>/dev/null | head -1)
-                    if [ -n "$HOST_IP" ] && [ "$HOST_IP" != "<no value>" ]; then
-                        echo "Container IP: $HOST_IP"
-                        if curl -k -s --max-time 5 https://$HOST_IP:8081/_explorer/emulator.pem > /dev/null 2>&1; then
-                            echo "Cosmos DB emulator is accessible via container IP!"
-                            exit 0
-                        else
-                            echo "Cannot connect to container IP either"
-                        fi
-                    else
-                        echo "Could not determine container IP"
-                    fi
-                    
-                    # Try to check if the port is exposed correctly
-                    echo "Checking container port exposure..."
-                    docker inspect $CONTAINER_ID --format='{{range $p, $conf := .NetworkSettings.Ports}}{{$p}} -> {{(index $conf 0).HostPort}}{{end}}' 2>/dev/null || echo "Could not check port exposure"
+                # Check if we can access via the mapped port
+                if curl -s --max-time 5 http://localhost:7777/ > /dev/null 2>&1; then
+                    echo "Cosmos DB emulator is accessible on host port 7777!"
+                    exit 0
                 fi
             else
                 echo "Emulator not ready inside container yet"
@@ -103,18 +74,18 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
         echo "No container found"
     fi
     
-    # Check if port 8081 is available on host
-    if netstat -tuln | grep -q ":8081"; then
-        echo "Port 8081 is in use on host"
+    # Check if port 7777 is available on host
+    if netstat -tuln | grep -q ":7777"; then
+        echo "Port 7777 is in use on host"
         # Try to connect directly
-        if curl -k -s --max-time 5 https://localhost:8081/_explorer/emulator.pem > /dev/null 2>&1; then
-            echo "Cosmos DB emulator is accessible on host!"
+        if curl -s --max-time 5 http://localhost:7777/ > /dev/null 2>&1; then
+            echo "Cosmos DB emulator is accessible on host port 7777!"
             exit 0
         else
-            echo "Port 8081 is in use but emulator not responding"
+            echo "Port 7777 is in use but emulator not responding"
         fi
     else
-        echo "Port 8081 is not in use"
+        echo "Port 7777 is not in use"
     fi
     
     echo "Waiting 10 seconds before next attempt..."
@@ -125,7 +96,9 @@ echo "Cosmos DB emulator failed to become ready after $MAX_ATTEMPTS attempts"
 echo "Final diagnostic information:"
 echo "Docker containers:"
 docker ps -a
-echo "Port usage:"
+echo "Port 7777 usage:"
+netstat -tuln | grep 7777 || echo "Port 7777 is not in use"
+echo "Port 8081 usage:"
 netstat -tuln | grep 8081 || echo "Port 8081 is not in use"
 if [ -n "$CONTAINER_ID" ]; then
     echo "Container logs:"

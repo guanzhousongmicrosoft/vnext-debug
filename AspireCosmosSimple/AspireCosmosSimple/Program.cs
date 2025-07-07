@@ -12,7 +12,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Add Azure Cosmos DB resource and configure it to run as a preview emulator
 var cosmos = builder
     .AddAzureCosmosDB("database")
-    .RunAsPreviewEmulator();
+    .RunAsPreviewEmulator(emulator => emulator.WithGatewayPort(7777));
 
 // Add a database and container to the Cosmos DB resource
 var database = cosmos.AddCosmosDatabase("MyDb");
@@ -30,7 +30,7 @@ Console.WriteLine("Cosmos DB emulator is starting...");
 await Task.Delay(10000);
 
 Console.WriteLine("Cosmos DB emulator is running!");
-Console.WriteLine("The Cosmos DB emulator connection string is: AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==");
+Console.WriteLine("The Cosmos DB emulator connection string is: AccountEndpoint=https://localhost:7777/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==");
 Console.WriteLine("Database: MyDb");
 Console.WriteLine("Container: Users");
 Console.WriteLine("Press any key to stop the application...");

@@ -10,10 +10,20 @@
 using System;
 using System.Reflection;
 
+[assembly: System.Reflection.AssemblyMetadata("dcpclipath", "/home/song/.nuget/packages/aspire.hosting.orchestration.linux-x64/9.3.1/tools/dcp")]
+[assembly: System.Reflection.AssemblyMetadata("dcpextensionpaths", ("/home/song/.nuget/packages/aspire.hosting.orchestration.linux-x64/9.3.1/tools/ext" +
+    "/"))]
+[assembly: System.Reflection.AssemblyMetadata("dcpbinpath", ("/home/song/.nuget/packages/aspire.hosting.orchestration.linux-x64/9.3.1/tools/ext" +
+    "/bin/"))]
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectpath", "/home/song/vnext-debug/AspireCosmosSimple/AspireCosmosSimple")]
+[assembly: System.Reflection.AssemblyMetadata("apphostprojectname", "AspireCosmosSimple.csproj")]
+[assembly: System.Reflection.AssemblyMetadata("aspiredashboardpath", ("/home/song/.nuget/packages/aspire.dashboard.sdk.linux-x64/9.3.1/tools/Aspire.Dash" +
+    "board"))]
+[assembly: System.Reflection.AssemblyMetadataAttribute("apphostprojectbaseintermediateoutputpath", "/home/song/vnext-debug/AspireCosmosSimple/AspireCosmosSimple/obj/")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("AspireCosmosSimple")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c06ed072fc85c621c20715af08e14641b15ad8ad")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5b3c42dfa320aeaf08a30c8e00c01d2171ba3e78")]
 [assembly: System.Reflection.AssemblyProductAttribute("AspireCosmosSimple")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AspireCosmosSimple")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

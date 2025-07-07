@@ -14,7 +14,7 @@ namespace CosmosDBTest
     public class Program
     {
         // Connection string for the Cosmos DB emulator
-        private static readonly string EndpointUri = "https://localhost:8081";
+        private static readonly string EndpointUri = "http://localhost:7777";
         private static readonly string PrimaryKey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
         private static readonly string DatabaseId = "MyDb";
         private static readonly string ContainerId = "Users";
@@ -34,8 +34,7 @@ namespace CosmosDBTest
                     return new HttpClient(httpClientHandler);
                 },
                 ConnectionMode = ConnectionMode.Gateway,
-                RequestTimeout = TimeSpan.FromSeconds(30),
-                OpenTcpConnectionTimeout = TimeSpan.FromSeconds(30)
+                RequestTimeout = TimeSpan.FromSeconds(30)
             };
 
             CosmosClient cosmosClient = new CosmosClient(EndpointUri, PrimaryKey, clientOptions);
@@ -180,7 +179,7 @@ namespace CosmosDBTest
                 {
                     Console.WriteLine("This appears to be a connection issue. Possible causes:");
                     Console.WriteLine("1. Cosmos DB emulator is not running");
-                    Console.WriteLine("2. Port 8081 is not accessible");
+                    Console.WriteLine("2. Port 7777 is not accessible");
                     Console.WriteLine("3. SSL certificate validation is failing");
                     Console.WriteLine("4. Network connectivity issue");
                 }

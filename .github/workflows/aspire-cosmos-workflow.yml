@@ -46,7 +46,7 @@ jobs:
         
         # Pre-pull the Cosmos DB emulator image
         echo "Pre-pulling Cosmos DB emulator image..."
-        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest || echo "Failed to pull emulator image"
+        docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview || echo "Failed to pull emulator image"
 
     # Restore dependencies for both projects
     - name: Restore dependencies
@@ -60,6 +60,12 @@ jobs:
         dotnet build AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj --no-restore
         dotnet build AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj --no-restore
     
+    # Verify configuration
+    - name: Verify Configuration
+      run: |
+        chmod +x scripts/verify-config.sh
+        ./scripts/verify-config.sh
+    
     # Modify Program.cs to run in CI environment
     - name: Prepare Aspire for CI environment
       run: |
@@ -67,7 +73,7 @@ jobs:
         cp AspireCosmosSimple/AspireCosmosSimple/Program.cs AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak
         
         # Replace Console.ReadKey with a sleep timer for CI environment
-        sed -i 's/Console.ReadKey();/Thread.Sleep(60000); \/\/ Sleep for 60 seconds instead of waiting for key press in CI environment/' AspireCosmosSimple/AspireCosmosSimple/Program.cs
+        sed -i 's/Console.ReadKey();/Thread.Sleep(120000); \/\/ Sleep for 2 minutes instead of waiting for key press in CI environment/' AspireCosmosSimple/AspireCosmosSimple/Program.cs
         
         # Add using statement for Thread if not already present
         sed -i '1s/^/using System.Threading;\n/' AspireCosmosSimple/AspireCosmosSimple/Program.cs
@@ -133,18 +139,12 @@ jobs:
         echo "=== Environment Debug Information ==="
         echo "System information:"
         uname -a
-        echo "Docker version:"
-        docker --version
-        echo "Docker info:"
-        docker info
-        echo "Network interfaces:"
-        ip addr show
-        echo "Listening ports:"
-        netstat -tuln
-        echo "Docker networks:"
-        docker network ls
         echo "Docker containers:"
         docker ps -a
+        echo "Listening ports:"
+        netstat -tuln | grep -E "(7777|8081)" || echo "Ports 7777 and 8081 are not in use"
+        echo "Docker networks:"
+        docker network ls
         echo "Environment variables:"
         env | grep -E "(ASPIRE|COSMOS|AZURE)" || echo "No Aspire/Cosmos environment variables set"
         
@@ -161,6 +161,9 @@ jobs:
         
         # Run the test application
         echo "Running test application to verify Cosmos DB emulator..."
+        echo "Testing connection to http://localhost:7777 first..."
+        curl -s --max-time 5 http://localhost:7777/ > /dev/null && echo "Port 7777 is accessible" || echo "Port 7777 is not accessible"
+        
         dotnet run --project AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj > logs/test_output.log 2>&1 || true
         TEST_RESULT=$?
         
