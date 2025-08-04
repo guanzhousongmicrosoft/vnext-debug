@@ -1,0 +1,115 @@
+name: Cosmos Emulator with Rootless Docker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  cosmos-emulator:
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Use Docker in rootless mode
+      uses: ScribeMD/rootless-docker@0.2.2
+
+    - name: Pull Cosmos emulator image
+      run: docker pull guanzhoutest.azurecr.io/cosmos-emulator:latest
+
+    - name: Start Cosmos emulator container
+      run: |
+        docker run -d \
+          --name cosmos-emulator \
+          -p 8081:8081 \
+          -p 8082:1234 \
+          -p 5432:5432 \
+          -e ENABLE_EXPLORER=true \
+          -e PROTOCOL=http \
+          -e ENABLE_TELEMETRY=true \
+          -e LOG_LEVEL=info \
+          guanzhoutest.azurecr.io/cosmos-emulator:latest
+
+    - name: Wait for container to start
+      run: |
+        echo "Waiting for Cosmos emulator to start..."
+        sleep 30
+        
+        # Wait up to 2 minutes for the container to be healthy
+        timeout=120
+        elapsed=0
+        while [ $elapsed -lt $timeout ]; do
+          if docker ps | grep -q cosmos-emulator; then
+            echo "Container is running"
+            break
+          fi
+          echo "Waiting for container... ($elapsed seconds elapsed)"
+          sleep 5
+          elapsed=$((elapsed + 5))
+        done
+
+    - name: Check connectivity on port 8081
+      run: |
+        echo "Checking connectivity on port 8081..."
+        timeout=60
+        elapsed=0
+        while [ $elapsed -lt $timeout ]; do
+          if curl -f -s -o /dev/null http://localhost:8081; then
+            echo "✅ Port 8081 is accessible"
+            curl -s http://localhost:8081 | head -20
+            break
+          else
+            echo "⏳ Port 8081 not ready yet... ($elapsed seconds elapsed)"
+            sleep 5
+            elapsed=$((elapsed + 5))
+          fi
+        done
+        
+        if [ $elapsed -ge $timeout ]; then
+          echo "❌ Port 8081 is not accessible after $timeout seconds"
+          exit 1
+        fi
+
+    - name: Check connectivity on port 8082
+      run: |
+        echo "Checking connectivity on port 8082..."
+        timeout=60
+        elapsed=0
+        while [ $elapsed -lt $timeout ]; do
+          if curl -f -s -o /dev/null http://localhost:8082; then
+            echo "✅ Port 8082 is accessible"
+            curl -s http://localhost:8082 | head -20
+            break
+          else
+            echo "⏳ Port 8082 not ready yet... ($elapsed seconds elapsed)"
+            sleep 5
+            elapsed=$((elapsed + 5))
+          fi
+        done
+        
+        if [ $elapsed -ge $timeout ]; then
+          echo "❌ Port 8082 is not accessible after $timeout seconds"
+          exit 1
+        fi
+
+    - name: Show Docker container status
+      run: |
+        echo "=== Docker Container Status ==="
+        docker ps -a
+
+    - name: Show all Docker logs
+      run: |
+        echo "=== Docker Logs for cosmos-emulator ==="
+        docker logs cosmos-emulator
+      if: always()
+
+    - name: Cleanup
+      run: |
+        echo "Stopping and removing container..."
+        docker stop cosmos-emulator || true
+        docker rm cosmos-emulator || true
+      if: always()
