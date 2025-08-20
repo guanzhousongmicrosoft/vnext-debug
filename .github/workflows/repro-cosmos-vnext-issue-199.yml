@@ -1,0 +1,128 @@
+name: Repro Cosmos vNext + Aspire issue #199
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  repro:
+    runs-on: ubuntu-latest
+
+    env:
+      # Allow Aspire to use http for local emulator
+      ASPIRE_ALLOW_UNSECURED_TRANSPORT: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore and build
+        run: |
+          dotnet --info
+          dotnet restore AspireCosmosSimple/AspireCosmosSimple.sln
+          dotnet build AspireCosmosSimple/AspireCosmosSimple.sln --no-restore -c Debug
+
+      - name: Pre-pull Cosmos vNext emulator image (optional)
+        run: |
+          docker --version
+          # Pre-pull the image Aspire will use for the emulator to save time
+          docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview || true
+
+      - name: Patch Aspire host for CI (avoid Console.ReadKey())
+        run: |
+          cp AspireCosmosSimple/AspireCosmosSimple/Program.cs AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak
+          # Replace the blocking Console.ReadKey() with a timed delay so the process stays alive in CI
+          sed -i "s/Console.ReadKey();/await Task.Delay(TimeSpan.FromMinutes(3));/" AspireCosmosSimple/AspireCosmosSimple/Program.cs
+          echo "--- Patched Program.cs (tail) ---"
+          tail -n 30 AspireCosmosSimple/AspireCosmosSimple/Program.cs
+
+      - name: Start Aspire host (starts Cosmos emulator) in background
+        run: |
+          set -e
+          mkdir -p logs
+          echo "Starting Aspire host..."
+          dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj > logs/aspire_output.log 2>&1 &
+          echo $! > aspire.pid
+          sleep 3
+          if ! ps -p $(cat aspire.pid) >/dev/null 2>&1; then
+            echo "Aspire process not running; showing logs" >&2
+            cat logs/aspire_output.log || true
+            exit 1
+          fi
+          echo "Aspire PID: $(cat aspire.pid)"
+
+      - name: Wait for emulator gateway on http://localhost:7777
+        run: |
+          echo "Waiting for Cosmos emulator to become ready on port 7777..."
+          for i in {1..60}; do
+            if curl -fsS http://localhost:7777/ >/dev/null 2>&1; then
+              echo "Emulator responded on attempt $i"; break
+            fi
+            sleep 5
+            if [ $i -eq 60 ]; then
+              echo "Emulator did not respond after 5 minutes" >&2
+              exit 1
+            fi
+          done
+          echo "Docker containers:" && docker ps -a || true
+
+      - name: Run client to create DB/container and capture failure
+        id: run_client
+        run: |
+          set +e
+          echo "Running CosmosDBTest client..."
+          dotnet run --project AspireCosmosSimple/CosmosDBTest/CosmosDBTest.csproj > logs/test_output.log 2>&1
+          EXIT_CODE=$?
+          echo "client-exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "Client exit code: $EXIT_CODE"
+          # Always continue to collect logs even if it failed
+          exit 0
+
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          echo "=== Aspire tail ===" && tail -n 200 logs/aspire_output.log || true
+          echo "=== Client output ===" && cat logs/test_output.log || true
+          echo "=== Docker ps ===" && docker ps -a || true
+          EMU_ID=$(docker ps --format '{{.ID}} {{.Image}}' | awk '/azure-cosmos-emulator/ {print $1; exit}')
+          if [ -n "$EMU_ID" ]; then
+            echo "=== Emulator logs ($EMU_ID) ==="
+            docker logs "$EMU_ID" > logs/cosmos_emulator.log 2>&1 || true
+            docker inspect "$EMU_ID" > logs/cosmos_emulator_inspect.json 2>&1 || true
+          else
+            echo "No emulator container found via docker ps"
+          fi
+          # Save ports
+          (command -v ss >/dev/null && ss -tulpen || netstat -tulpen) > logs/ports.txt 2>&1 || true
+
+      - name: Stop Aspire host
+        if: always()
+        run: |
+          if [ -f aspire.pid ]; then
+            kill $(cat aspire.pid) 2>/dev/null || true
+            sleep 2
+          fi
+          mv AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak AspireCosmosSimple/AspireCosmosSimple/Program.cs
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repro-199-logs
+          path: |
+            logs/**
+
+      - name: Fail job if client failed (expecting repro)
+        if: steps.run_client.outputs.client-exit-code && steps.run_client.outputs.client-exit-code != '0'
+        run: |
+          echo "CosmosDBTest client failed with exit code: ${{ steps.run_client.outputs.client-exit-code }} (this indicates the issue reproduced)." >&2
+          exit 1
