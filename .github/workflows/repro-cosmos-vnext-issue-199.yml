@@ -37,13 +37,22 @@ jobs:
           # Pre-pull the image Aspire will use for the emulator to save time
           docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview || true
 
-      - name: Patch Aspire host for CI (avoid Console.ReadKey())
+      - name: Patch Aspire host for CI (avoid Console.ReadKey and use 8081)
         run: |
           cp AspireCosmosSimple/AspireCosmosSimple/Program.cs AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak
           # Replace the blocking Console.ReadKey() with a timed delay so the process stays alive in CI
           sed -i "s/Console.ReadKey();/await Task.Delay(TimeSpan.FromMinutes(3));/" AspireCosmosSimple/AspireCosmosSimple/Program.cs
+          # Ensure emulator gateway is on 8081 to avoid SDK redirect to a non-listening port
+          sed -i "s/WithGatewayPort(7777)/WithGatewayPort(8081)/" AspireCosmosSimple/AspireCosmosSimple/Program.cs
           echo "--- Patched Program.cs (tail) ---"
           tail -n 30 AspireCosmosSimple/AspireCosmosSimple/Program.cs
+
+      - name: Patch client to use emulator on 8081
+        run: |
+          cp AspireCosmosSimple/CosmosDBTest/Program.cs AspireCosmosSimple/CosmosDBTest/Program.cs.bak
+          sed -i "s#http://localhost:7777#http://localhost:8081#" AspireCosmosSimple/CosmosDBTest/Program.cs
+          echo "--- Patched client Program.cs (diff) ---"
+          diff -u AspireCosmosSimple/CosmosDBTest/Program.cs.bak AspireCosmosSimple/CosmosDBTest/Program.cs || true
 
       - name: Start Aspire host (starts Cosmos emulator) in background
         run: |
@@ -60,11 +69,11 @@ jobs:
           fi
           echo "Aspire PID: $(cat aspire.pid)"
 
-      - name: Wait for emulator gateway on http://localhost:7777
+      - name: Wait for emulator gateway on http://localhost:8081
         run: |
-          echo "Waiting for Cosmos emulator to become ready on port 7777..."
+          echo "Waiting for Cosmos emulator to become ready on port 8081..."
           for i in {1..60}; do
-            if curl -fsS http://localhost:7777/ >/dev/null 2>&1; then
+            if curl -fsS http://localhost:8081/ >/dev/null 2>&1; then
               echo "Emulator responded on attempt $i"; break
             fi
             sleep 5
@@ -112,6 +121,9 @@ jobs:
             sleep 2
           fi
           mv AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak AspireCosmosSimple/AspireCosmosSimple/Program.cs
+          if [ -f AspireCosmosSimple/CosmosDBTest/Program.cs.bak ]; then
+            mv AspireCosmosSimple/CosmosDBTest/Program.cs.bak AspireCosmosSimple/CosmosDBTest/Program.cs
+          fi
 
       - name: Upload logs
         if: always()
