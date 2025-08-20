@@ -1,13 +1,21 @@
 using System;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Microsoft.Azure.Cosmos;
 
 namespace CosmosDBTest
 {
     public class User
     {
+        // Cosmos requires the JSON property to be exactly "id"
+        [JsonProperty(PropertyName = "id")]
         public string Id { get; set; } = Guid.NewGuid().ToString();
+
+        // Partition key path is "/emailAddress"; ensure property name matches
+        [JsonProperty(PropertyName = "emailAddress")]
         public string EmailAddress { get; set; } = string.Empty;
+
+        [JsonProperty(PropertyName = "name")]
         public string Name { get; set; } = string.Empty;
     }
 
