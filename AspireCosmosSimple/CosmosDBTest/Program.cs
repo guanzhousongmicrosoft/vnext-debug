@@ -54,7 +54,7 @@ namespace CosmosDBTest
                 // Wait for emulator to be ready with retries
                 const int maxRetries = 10;
                 int retryCount = 0;
-                Exception lastException = null;
+                Exception? lastException = null;
                 
                 while (retryCount < maxRetries)
                 {
@@ -168,6 +168,14 @@ namespace CosmosDBTest
                 Console.WriteLine($"Endpoint: {EndpointUri}");
                 Console.WriteLine($"Database ID: {DatabaseId}");
                 Console.WriteLine($"Container ID: {ContainerId}");
+                // Repro sentinel: detect the specific vNext issue (#199)
+                if ((int)cosmosException.StatusCode == 500 &&
+                    cosmosException.Message.Contains("schema \"cosmos_api\" does not exist", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine("REPRO_SIGNAL: COSMOS_API_SCHEMA_MISSING");
+                    // Distinct exit code for CI to pick up
+                    Environment.Exit(42);
+                }
                 
                 throw;
             }

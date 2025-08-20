@@ -96,6 +96,17 @@ jobs:
           # Always continue to collect logs even if it failed
           exit 0
 
+      - name: Detect repro signal in client output
+        id: detect_repro
+        run: |
+          if grep -q "REPRO_SIGNAL: COSMOS_API_SCHEMA_MISSING" logs/test_output.log; then
+            echo "repro=1" >> $GITHUB_OUTPUT
+            echo "Detected repro signal in test output"
+          else
+            echo "repro=0" >> $GITHUB_OUTPUT
+            echo "Repro signal not detected"
+          fi
+
       - name: Collect diagnostics
         if: always()
         run: |
@@ -134,7 +145,12 @@ jobs:
             logs/**
 
       - name: Fail job if client failed (expecting repro)
-        if: steps.run_client.outputs.client-exit-code && steps.run_client.outputs.client-exit-code != '0'
+        if: steps.detect_repro.outputs.repro == '1' || (steps.run_client.outputs.client-exit-code && steps.run_client.outputs.client-exit-code != '0')
         run: |
-          echo "CosmosDBTest client failed with exit code: ${{ steps.run_client.outputs.client-exit-code }} (this indicates the issue reproduced)." >&2
-          exit 1
+          if [ "${{ steps.detect_repro.outputs.repro }}" = "1" ]; then
+            echo "Detected issue #199 repro signal (COSMOS_API_SCHEMA_MISSING). Failing as expected for triage." >&2
+            exit 1
+          else
+            echo "CosmosDBTest client failed with exit code: ${{ steps.run_client.outputs.client-exit-code }} (non-repro failure)." >&2
+            exit 1
+          fi
