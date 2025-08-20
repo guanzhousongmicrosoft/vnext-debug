@@ -37,52 +37,26 @@ jobs:
           # Pre-pull the image Aspire will use for the emulator to save time
           docker pull mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview || true
 
-      - name: Patch Aspire host for CI (avoid Console.ReadKey and use 8081)
+      - name: Patch Aspire host for CI (no Console.ReadKey)
         run: |
           cp AspireCosmosSimple/AspireCosmosSimple/Program.cs AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak
-          # Replace the blocking Console.ReadKey() with a timed delay so the process stays alive in CI
-          sed -i "s/Console.ReadKey();/await Task.Delay(TimeSpan.FromMinutes(3));/" AspireCosmosSimple/AspireCosmosSimple/Program.cs
-          # Ensure emulator gateway is on 8081 to avoid SDK redirect to a non-listening port
-          sed -i "s/WithGatewayPort(7777)/WithGatewayPort(8081)/" AspireCosmosSimple/AspireCosmosSimple/Program.cs
+          # If the app host had a ReadKey (now removed), this would neutralize it in CI
+          sed -i "s/Console.ReadKey();/await Task.Delay(TimeSpan.FromMinutes(3));/" AspireCosmosSimple/AspireCosmosSimple/Program.cs || true
           echo "--- Patched Program.cs (tail) ---"
           tail -n 30 AspireCosmosSimple/AspireCosmosSimple/Program.cs
 
-      - name: Patch client to use emulator on 8081
+      - name: Run repro harness (DistributedApplicationTestingBuilder)
+        id: run_repro
         run: |
-          cp AspireCosmosSimple/CosmosDBTest/Program.cs AspireCosmosSimple/CosmosDBTest/Program.cs.bak
-          sed -i "s#http://localhost:7777#http://localhost:8081#" AspireCosmosSimple/CosmosDBTest/Program.cs
-          echo "--- Patched client Program.cs (diff) ---"
-          diff -u AspireCosmosSimple/CosmosDBTest/Program.cs.bak AspireCosmosSimple/CosmosDBTest/Program.cs || true
-
-      - name: Start Aspire host (starts Cosmos emulator) in background
-        run: |
-          set -e
+          set +e
           mkdir -p logs
-          echo "Starting Aspire host..."
-          dotnet run --project AspireCosmosSimple/AspireCosmosSimple/AspireCosmosSimple.csproj > logs/aspire_output.log 2>&1 &
-          echo $! > aspire.pid
-          sleep 3
-          if ! ps -p $(cat aspire.pid) >/dev/null 2>&1; then
-            echo "Aspire process not running; showing logs" >&2
-            cat logs/aspire_output.log || true
-            exit 1
-          fi
-          echo "Aspire PID: $(cat aspire.pid)"
-
-      - name: Wait for emulator gateway on http://localhost:8081
-        run: |
-          echo "Waiting for Cosmos emulator to become ready on port 8081..."
-          for i in {1..60}; do
-            if curl -fsS http://localhost:8081/ >/dev/null 2>&1; then
-              echo "Emulator responded on attempt $i"; break
-            fi
-            sleep 5
-            if [ $i -eq 60 ]; then
-              echo "Emulator did not respond after 5 minutes" >&2
-              exit 1
-            fi
-          done
-          echo "Docker containers:" && docker ps -a || true
+          echo "Running CosmosEmulatorReproTest..."
+          dotnet run --project AspireCosmosSimple/CosmosEmulatorReproTest/CosmosEmulatorReproTest.csproj > logs/aspire_output.log 2>&1
+          EXIT_CODE=$?
+          echo "repro-exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "Repro harness exit code: $EXIT_CODE"
+          # Continue to collect logs
+          exit 0
 
       - name: Run client to create DB/container and capture failure
         id: run_client
@@ -111,7 +85,7 @@ jobs:
         if: always()
         run: |
           echo "=== Aspire tail ===" && tail -n 200 logs/aspire_output.log || true
-          echo "=== Client output ===" && cat logs/test_output.log || true
+          echo "=== Repro harness output (aspire_output.log) ===" && tail -n 400 logs/aspire_output.log || true
           echo "=== Docker ps ===" && docker ps -a || true
           EMU_ID=$(docker ps --format '{{.ID}} {{.Image}}' | awk '/azure-cosmos-emulator/ {print $1; exit}')
           if [ -n "$EMU_ID" ]; then
@@ -127,14 +101,7 @@ jobs:
       - name: Stop Aspire host
         if: always()
         run: |
-          if [ -f aspire.pid ]; then
-            kill $(cat aspire.pid) 2>/dev/null || true
-            sleep 2
-          fi
           mv AspireCosmosSimple/AspireCosmosSimple/Program.cs.bak AspireCosmosSimple/AspireCosmosSimple/Program.cs
-          if [ -f AspireCosmosSimple/CosmosDBTest/Program.cs.bak ]; then
-            mv AspireCosmosSimple/CosmosDBTest/Program.cs.bak AspireCosmosSimple/CosmosDBTest/Program.cs
-          fi
 
       - name: Upload logs
         if: always()
@@ -144,13 +111,24 @@ jobs:
           path: |
             logs/**
 
-      - name: Fail job if client failed (expecting repro)
-        if: steps.detect_repro.outputs.repro == '1' || (steps.run_client.outputs.client-exit-code && steps.run_client.outputs.client-exit-code != '0')
+      - name: Detect repro signal in harness output
+        id: detect_repro_harness
         run: |
-          if [ "${{ steps.detect_repro.outputs.repro }}" = "1" ]; then
-            echo "Detected issue #199 repro signal (COSMOS_API_SCHEMA_MISSING). Failing as expected for triage." >&2
+          if grep -q "schema \"cosmos_api\" does not exist" logs/aspire_output.log; then
+            echo "repro=1" >> $GITHUB_OUTPUT
+            echo "Detected schema error in harness output"
+          else
+            echo "repro=0" >> $GITHUB_OUTPUT
+            echo "No schema error detected in harness output"
+          fi
+
+      - name: Fail job if repro detected or harness failed
+        if: steps.detect_repro_harness.outputs.repro == '1' || (steps.run_repro.outputs.repro-exit-code && steps.run_repro.outputs.repro-exit-code != '0')
+        run: |
+          if [ "${{ steps.detect_repro_harness.outputs.repro }}" = "1" ]; then
+            echo "Detected issue #199 schema error in harness logs. Failing as expected for triage." >&2
             exit 1
           else
-            echo "CosmosDBTest client failed with exit code: ${{ steps.run_client.outputs.client-exit-code }} (non-repro failure)." >&2
+            echo "Harness failed with exit code: ${{ steps.run_repro.outputs.repro-exit-code }} (non-repro failure)." >&2
             exit 1
           fi

@@ -1,7 +1,7 @@
 [
     {
-        "Id": "2635e0f33346f6b341478ca3e0abe340817f2395aebeea0b5f8e860974738174",
-        "Created": "2025-08-20T17:01:03.228321656Z",
+        "Id": "6c55a044171cbfe6a5efc88228c8155c94d12a708f998bf8a1cb7145c1274a74",
+        "Created": "2025-08-20T17:06:49.07261911Z",
         "Path": "/home/cosmosdev/docker_entrypoint.sh",
         "Args": [],
         "State": {
@@ -11,18 +11,18 @@
             "Restarting": false,
             "OOMKilled": false,
             "Dead": false,
-            "Pid": 3243,
+            "Pid": 3246,
             "ExitCode": 0,
             "Error": "",
-            "StartedAt": "2025-08-20T17:01:06.321080019Z",
+            "StartedAt": "2025-08-20T17:06:52.134430712Z",
             "FinishedAt": "0001-01-01T00:00:00Z"
         },
         "Image": "sha256:71f340117dbf290d8752f797c2254b69b2046acc97b1b7a4d596551eaebda8b1",
-        "ResolvConfPath": "/var/lib/docker/containers/2635e0f33346f6b341478ca3e0abe340817f2395aebeea0b5f8e860974738174/resolv.conf",
-        "HostnamePath": "/var/lib/docker/containers/2635e0f33346f6b341478ca3e0abe340817f2395aebeea0b5f8e860974738174/hostname",
-        "HostsPath": "/var/lib/docker/containers/2635e0f33346f6b341478ca3e0abe340817f2395aebeea0b5f8e860974738174/hosts",
-        "LogPath": "/var/lib/docker/containers/2635e0f33346f6b341478ca3e0abe340817f2395aebeea0b5f8e860974738174/2635e0f33346f6b341478ca3e0abe340817f2395aebeea0b5f8e860974738174-json.log",
-        "Name": "/database-gmkruntr",
+        "ResolvConfPath": "/var/lib/docker/containers/6c55a044171cbfe6a5efc88228c8155c94d12a708f998bf8a1cb7145c1274a74/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/6c55a044171cbfe6a5efc88228c8155c94d12a708f998bf8a1cb7145c1274a74/hostname",
+        "HostsPath": "/var/lib/docker/containers/6c55a044171cbfe6a5efc88228c8155c94d12a708f998bf8a1cb7145c1274a74/hosts",
+        "LogPath": "/var/lib/docker/containers/6c55a044171cbfe6a5efc88228c8155c94d12a708f998bf8a1cb7145c1274a74/6c55a044171cbfe6a5efc88228c8155c94d12a708f998bf8a1cb7145c1274a74-json.log",
+        "Name": "/database-bgtfatub",
         "RestartCount": 0,
         "Driver": "overlay2",
         "Platform": "linux",
@@ -132,17 +132,17 @@
         },
         "GraphDriver": {
             "Data": {
-                "ID": "2635e0f33346f6b341478ca3e0abe340817f2395aebeea0b5f8e860974738174",
-                "LowerDir": "/var/lib/docker/overlay2/85d22dd9ecec3127570bb4ead37f0ed9d35e1bb36f1c689c6342479e722bbf1c-init/diff:/var/lib/docker/overlay2/36d695eaa3cd5b5dd8dc14ed05bd3c73a50382c2a0e1de02f60274ab7d1ea654/diff:/var/lib/docker/overlay2/97e8ea8b5c5d9b22debd018048afb89a0a42bcd361c647fe07f99b582f914c36/diff:/var/lib/docker/overlay2/e1d6d7ece3625026f775e7d726ab2b7eb98c3b56748bdf15f978574ba43a6c5b/diff:/var/lib/docker/overlay2/981f9f91ca420b5fa801851e625399b377654639f25c7b01cb3096c3f31473c2/diff:/var/lib/docker/overlay2/ce604b999629ebaba2393cb01c577daba36a1be54b734761c005f1ca549c1c5e/diff:/var/lib/docker/overlay2/643ecf8cf10031703579ea732a58903c0a508f75659e4d0c814daa546a55b679/diff:/var/lib/docker/overlay2/c4def750842d5791f4225506e54b0a71dd88b46e522bed2eef96323b87ef957d/diff:/var/lib/docker/overlay2/44fb2cbc37a116bb42858fb856946442b74b0fc8a223c86cbc523e9af27671ea/diff:/var/lib/docker/overlay2/1defe47c1913baa9d59fe1324f6f811768a8c0e738b3b93df2305756c4a48fca/diff:/var/lib/docker/overlay2/da18756d9cf72507ba1dc2e1100b4399a15fdcf5b6ef92da344d9ccac1bd1842/diff:/var/lib/docker/overlay2/c2b380d900faf6483bcfda2f92bda26dc3086c5534729a9138af401a5dce8627/diff:/var/lib/docker/overlay2/ba7e0556fae586112c78c80621237c1a2f092e2561210e5f85d5b56ff2830d82/diff:/var/lib/docker/overlay2/d4755e2aa663d47314fdc7a1dd80e044509366a92911c387d14b59b8c553597f/diff:/var/lib/docker/overlay2/8f34e41758267a25c4163585594b3827658900b086d171f7b5b2cf2cfa00f025/diff:/var/lib/docker/overlay2/3dfa663a2719d2d0c3e74625a7d34075a284d539f4546f8a88ae15ed41e01d9c/diff:/var/lib/docker/overlay2/c5a479a88371f48c52c35ad807cac4a14f006b08b20479dd0ae142b0e86b73a4/diff:/var/lib/docker/overlay2/4eedbdae14719d2fbdc44dd5234a3f56f0b11fb4b0a2e8106b7fa8a8f143d8e0/diff:/var/lib/docker/overlay2/407a06cd61e897130f57d465b2166ad280061aa04ae92a5b7985ab05d0613c39/diff:/var/lib/docker/overlay2/24ae88ea7e06768806e784e53321223a84c9d7f5bd5599ade0c2815e02ef3fac/diff",
-                "MergedDir": "/var/lib/docker/overlay2/85d22dd9ecec3127570bb4ead37f0ed9d35e1bb36f1c689c6342479e722bbf1c/merged",
-                "UpperDir": "/var/lib/docker/overlay2/85d22dd9ecec3127570bb4ead37f0ed9d35e1bb36f1c689c6342479e722bbf1c/diff",
-                "WorkDir": "/var/lib/docker/overlay2/85d22dd9ecec3127570bb4ead37f0ed9d35e1bb36f1c689c6342479e722bbf1c/work"
+                "ID": "6c55a044171cbfe6a5efc88228c8155c94d12a708f998bf8a1cb7145c1274a74",
+                "LowerDir": "/var/lib/docker/overlay2/21e92d2155fc0ffcbf056bf5a23ce81afdc950b85218b335fcbc51070ba3b798-init/diff:/var/lib/docker/overlay2/ac6c7f0f21562117fa30881095b62c9148bb69de54945db9527605068a5736e6/diff:/var/lib/docker/overlay2/0e175e07f6a97ee0022df38452c8b67c494c4798cc35c020af1826ab5f99b6fc/diff:/var/lib/docker/overlay2/546160b999cdc796115750cb3b58bd7a7b7ab6577e97ba087b49a0055bb5eeee/diff:/var/lib/docker/overlay2/8e80388c3476b2d28d7fe1802ffe0cebb2325ea793ae02473aa7e7adfac15e12/diff:/var/lib/docker/overlay2/1ea8702fcdf868bb6ed334446e6d00992c5440cd67d74fc2a64665a4266ca236/diff:/var/lib/docker/overlay2/14de8483e4fba7314b8b3e2932f042e3a44bc183a2ccee2294409758af2a88c1/diff:/var/lib/docker/overlay2/6fa99b0505b104d53e7c4c1c157bfb81e39959c9d19c83b3346ab48073bcb1c7/diff:/var/lib/docker/overlay2/80596740230df3be75648cd3954c21259461c3abb20dbd68067cdbc23fcf4f20/diff:/var/lib/docker/overlay2/3f7932498560a3067cd3c371fe3be51f8be0eeb7298ca4870d4c2f4935c9c245/diff:/var/lib/docker/overlay2/48d39545f39b2f48621911677196256224a267cf7262c77a04b7b6c44686ad51/diff:/var/lib/docker/overlay2/26c10dc37e6f6150d439cb4f2a957af769a36bfe1561c08056abe23f331465cd/diff:/var/lib/docker/overlay2/cee0b4ee6c2a29f5835829eb5ed4465a9fa6679023fc644e657d866048d0d751/diff:/var/lib/docker/overlay2/1a0e415ecbef15f9da08efb274d90100cd45b27489082a1afc30054afe81a086/diff:/var/lib/docker/overlay2/ad6d358fddb99b27f270352a66151153b48fcaa72e527f9a25af45dab35ed3d4/diff:/var/lib/docker/overlay2/a2ac66798948f0b01a6efc060e7eb715e1f566d7328a5807f0f30a5a6cc8e5be/diff:/var/lib/docker/overlay2/a17c9fe612144d2e19024f1b939423b3190a40d07412e12aed52b9d69b4f8c16/diff:/var/lib/docker/overlay2/fd9f343944b2e5be64b653c39398fd6f3a5515fbb7ec0eb035410a5e9b240eab/diff:/var/lib/docker/overlay2/95280b6f0bdc49b96b3d2f09073fdc00cd6b365383f06c6e07109f3a99c71875/diff:/var/lib/docker/overlay2/5cf31db3d8c5af895c935d768913674429560a3027cefc653f96154c566c290b/diff",
+                "MergedDir": "/var/lib/docker/overlay2/21e92d2155fc0ffcbf056bf5a23ce81afdc950b85218b335fcbc51070ba3b798/merged",
+                "UpperDir": "/var/lib/docker/overlay2/21e92d2155fc0ffcbf056bf5a23ce81afdc950b85218b335fcbc51070ba3b798/diff",
+                "WorkDir": "/var/lib/docker/overlay2/21e92d2155fc0ffcbf056bf5a23ce81afdc950b85218b335fcbc51070ba3b798/work"
             },
             "Name": "overlay2"
         },
         "Mounts": [],
         "Config": {
-            "Hostname": "2635e0f33346",
+            "Hostname": "6c55a044171c",
             "Domainname": "",
             "User": "cosmosdev",
             "AttachStdin": false,
@@ -190,14 +190,14 @@
             "OnBuild": null,
             "Labels": {
                 "com.microsoft.developer.usvc-dev.build": "0.14.1",
-                "com.microsoft.developer.usvc-dev.creatorProcessId": "2900",
-                "com.microsoft.developer.usvc-dev.creatorProcessStartTime": "2025-08-20T17:01:02.093Z",
+                "com.microsoft.developer.usvc-dev.creatorProcessId": "2903",
+                "com.microsoft.developer.usvc-dev.creatorProcessStartTime": "2025-08-20T17:06:48.000Z",
                 "com.microsoft.developer.usvc-dev.group-version": "usvc-dev.developer.microsoft.com/v1",
                 "com.microsoft.developer.usvc-dev.lifecycle-key": "899ebcbad3da742ff526519e1628104eb3b3b54be60b4691d8b9311f573b04b1",
-                "com.microsoft.developer.usvc-dev.name": "database-gmkruntr",
+                "com.microsoft.developer.usvc-dev.name": "database-bgtfatub",
                 "com.microsoft.developer.usvc-dev.persistent": "false",
                 "com.microsoft.developer.usvc-dev.ports": "8081/tcp",
-                "com.microsoft.developer.usvc-dev.uid": "4aaed8a0-5bbd-4d9a-acdd-922ca015a968",
+                "com.microsoft.developer.usvc-dev.uid": "aac48b03-a1e7-4dde-a54d-2d7540c20558",
                 "com.visualstudio.msdata.image.build.buildnumber": "20250731.2",
                 "com.visualstudio.msdata.image.build.builduri": "vstfs:///Build/Build/183659306",
                 "com.visualstudio.msdata.image.build.definitionname": "PGCosmos.BuildContainer-Official-MultiStage",
@@ -211,8 +211,8 @@
         },
         "NetworkSettings": {
             "Bridge": "",
-            "SandboxID": "1326395ec34963259eab7d4e3178e803c16b141b3ef5521edd9910093f43e7ab",
-            "SandboxKey": "/var/run/docker/netns/1326395ec349",
+            "SandboxID": "de72173f806aa87ca2f00e2efb70c4cf87d199f95a622123c0767ce1680c44c6",
+            "SandboxKey": "/var/run/docker/netns/de72173f806a",
             "Ports": {
                 "8081/tcp": [
                     {
@@ -235,17 +235,17 @@
             "IPv6Gateway": "",
             "MacAddress": "",
             "Networks": {
-                "default-aspire-network-9l0ho0f1do": {
+                "default-aspire-network-5i0ksbs1sc": {
                     "IPAMConfig": {},
                     "Links": null,
                     "Aliases": [
                         "database"
                     ],
-                    "MacAddress": "1a:b3:9d:0e:2f:af",
+                    "MacAddress": "22:57:9d:75:8b:c3",
                     "DriverOpts": {},
                     "GwPriority": 0,
-                    "NetworkID": "b5208e2baf927160bed7e515c8b594b60e8ce97cc56b26c62c177400d6568c29",
-                    "EndpointID": "5f5d20af7052d8552a455cf52d7712478a2a4726231076d512607e3e852f4987",
+                    "NetworkID": "f8567850f6a8e5d327e62411cd98d65fdf834f78b7c73ee46771cf613a59405d",
+                    "EndpointID": "c66144eb6f28410bdeebc74bf5cb0079cf285acdaefce30101ca836e1848ef29",
                     "Gateway": "172.18.0.1",
                     "IPAddress": "172.18.0.2",
                     "IPPrefixLen": 16,
@@ -253,9 +253,9 @@
                     "GlobalIPv6Address": "",
                     "GlobalIPv6PrefixLen": 0,
                     "DNSNames": [
-                        "database-gmkruntr",
+                        "database-bgtfatub",
                         "database",
-                        "2635e0f33346"
+                        "6c55a044171c"
                     ]
                 }
             }

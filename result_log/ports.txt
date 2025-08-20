@@ -1,19 +1,19 @@
-Netid State  Recv-Q Send-Q   Local Address:Port  Peer Address:PortProcess                                                                                                                             
-udp   UNCONN 0      0           127.0.0.54:53         0.0.0.0:*    uid:991 ino:4065 sk:1 cgroup:/system.slice/systemd-resolved.service <->                                                            
-udp   UNCONN 0      0        127.0.0.53%lo:53         0.0.0.0:*    uid:991 ino:4063 sk:2 cgroup:/system.slice/systemd-resolved.service <->                                                            
-udp   UNCONN 0      0      10.1.0.188%eth0:68         0.0.0.0:*    uid:998 ino:5625 sk:3 cgroup:/system.slice/systemd-networkd.service <->                                                            
-udp   UNCONN 0      0            127.0.0.1:323        0.0.0.0:*    ino:7381 sk:4 cgroup:/system.slice/chrony.service <->                                                                              
-udp   UNCONN 0      0                [::1]:323           [::]:*    ino:7382 sk:5 cgroup:/system.slice/chrony.service v6only:1 <->                                                                     
-tcp   LISTEN 0      512          127.0.0.1:18888      0.0.0.0:*    users:(("Aspire.Dashboar",pid=3091,fd=319)) uid:1001 ino:17207 sk:6 cgroup:/system.slice/hosted-compute-agent.service <->          
-tcp   LISTEN 0      512          127.0.0.1:18889      0.0.0.0:*    users:(("Aspire.Dashboar",pid=3091,fd=321)) uid:1001 ino:17210 sk:7 cgroup:/system.slice/hosted-compute-agent.service <->          
-tcp   LISTEN 0      4096     127.0.0.53%lo:53         0.0.0.0:*    uid:991 ino:4064 sk:8 cgroup:/system.slice/systemd-resolved.service <->                                                            
-tcp   LISTEN 0      4096           0.0.0.0:22         0.0.0.0:*    ino:6388 sk:9 cgroup:/system.slice/ssh.socket <->                                                                                  
-tcp   LISTEN 0      4096         127.0.0.1:8081       0.0.0.0:*    users:(("dcpctrl",pid=2907,fd=10)) uid:1001 ino:17019 sk:a cgroup:/system.slice/hosted-compute-agent.service <->                   
-tcp   LISTEN 0      4096         127.0.0.1:32768      0.0.0.0:*    ino:17361 sk:b cgroup:/system.slice/docker.service <->                                                                             
-tcp   LISTEN 0      4096        127.0.0.54:53         0.0.0.0:*    uid:991 ino:4066 sk:c cgroup:/system.slice/systemd-resolved.service <->                                                            
-tcp   LISTEN 0      512          127.0.0.1:37427      0.0.0.0:*    users:(("AspireCosmosSim",pid=2792,fd=263)) uid:1001 ino:16825 sk:d cgroup:/system.slice/hosted-compute-agent.service <->          
-tcp   LISTEN 0      4096             [::1]:8081          [::]:*    users:(("dcpctrl",pid=2907,fd=9)) uid:1001 ino:17017 sk:e cgroup:/system.slice/hosted-compute-agent.service v6only:1 <->           
-tcp   LISTEN 0      4096              [::]:22            [::]:*    ino:6390 sk:f cgroup:/system.slice/ssh.socket v6only:1 <->                                                                         
-tcp   LISTEN 0      512              [::1]:18889         [::]:*    users:(("Aspire.Dashboar",pid=3091,fd=322)) uid:1001 ino:17211 sk:10 cgroup:/system.slice/hosted-compute-agent.service v6only:1 <->
-tcp   LISTEN 0      512              [::1]:18888         [::]:*    users:(("Aspire.Dashboar",pid=3091,fd=320)) uid:1001 ino:17208 sk:11 cgroup:/system.slice/hosted-compute-agent.service v6only:1 <->
-tcp   LISTEN 0      4096             [::1]:42121         [::]:*    users:(("dcp",pid=2891,fd=8)) uid:1001 ino:17431 sk:12 cgroup:/system.slice/hosted-compute-agent.service v6only:1 <->              
+Netid State  Recv-Q Send-Q  Local Address:Port  Peer Address:PortProcess                                                                                                                             
+udp   UNCONN 0      0          127.0.0.54:53         0.0.0.0:*    uid:991 ino:4867 sk:1 cgroup:/system.slice/systemd-resolved.service <->                                                            
+udp   UNCONN 0      0       127.0.0.53%lo:53         0.0.0.0:*    uid:991 ino:4865 sk:2 cgroup:/system.slice/systemd-resolved.service <->                                                            
+udp   UNCONN 0      0      10.1.0.75%eth0:68         0.0.0.0:*    uid:998 ino:5572 sk:3 cgroup:/system.slice/systemd-networkd.service <->                                                            
+udp   UNCONN 0      0           127.0.0.1:323        0.0.0.0:*    ino:6099 sk:4 cgroup:/system.slice/chrony.service <->                                                                              
+udp   UNCONN 0      0               [::1]:323           [::]:*    ino:6100 sk:5 cgroup:/system.slice/chrony.service v6only:1 <->                                                                     
+tcp   LISTEN 0      4096          0.0.0.0:22         0.0.0.0:*    ino:6412 sk:6 cgroup:/system.slice/ssh.socket <->                                                                                  
+tcp   LISTEN 0      4096        127.0.0.1:32768      0.0.0.0:*    ino:17606 sk:7 cgroup:/system.slice/docker.service <->                                                                             
+tcp   LISTEN 0      4096       127.0.0.54:53         0.0.0.0:*    uid:991 ino:4868 sk:8 cgroup:/system.slice/systemd-resolved.service <->                                                            
+tcp   LISTEN 0      512         127.0.0.1:35035      0.0.0.0:*    users:(("AspireCosmosSim",pid=2790,fd=263)) uid:1001 ino:16920 sk:9 cgroup:/system.slice/hosted-compute-agent.service <->          
+tcp   LISTEN 0      512         127.0.0.1:18888      0.0.0.0:*    users:(("Aspire.Dashboar",pid=3080,fd=319)) uid:1001 ino:17347 sk:a cgroup:/system.slice/hosted-compute-agent.service <->          
+tcp   LISTEN 0      512         127.0.0.1:18889      0.0.0.0:*    users:(("Aspire.Dashboar",pid=3080,fd=321)) uid:1001 ino:17350 sk:b cgroup:/system.slice/hosted-compute-agent.service <->          
+tcp   LISTEN 0      4096        127.0.0.1:8081       0.0.0.0:*    users:(("dcpctrl",pid=2903,fd=10)) uid:1001 ino:16256 sk:c cgroup:/system.slice/hosted-compute-agent.service <->                   
+tcp   LISTEN 0      4096    127.0.0.53%lo:53         0.0.0.0:*    uid:991 ino:4866 sk:d cgroup:/system.slice/systemd-resolved.service <->                                                            
+tcp   LISTEN 0      4096             [::]:22            [::]:*    ino:6414 sk:e cgroup:/system.slice/ssh.socket v6only:1 <->                                                                         
+tcp   LISTEN 0      4096            [::1]:33141         [::]:*    users:(("dcp",pid=2889,fd=8)) uid:1001 ino:16159 sk:f cgroup:/system.slice/hosted-compute-agent.service v6only:1 <->               
+tcp   LISTEN 0      4096            [::1]:8081          [::]:*    users:(("dcpctrl",pid=2903,fd=9)) uid:1001 ino:16254 sk:10 cgroup:/system.slice/hosted-compute-agent.service v6only:1 <->          
+tcp   LISTEN 0      512             [::1]:18888         [::]:*    users:(("Aspire.Dashboar",pid=3080,fd=320)) uid:1001 ino:17348 sk:11 cgroup:/system.slice/hosted-compute-agent.service v6only:1 <->
+tcp   LISTEN 0      512             [::1]:18889         [::]:*    users:(("Aspire.Dashboar",pid=3080,fd=322)) uid:1001 ino:17351 sk:12 cgroup:/system.slice/hosted-compute-agent.service v6only:1 <->
